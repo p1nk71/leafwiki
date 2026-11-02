@@ -91,9 +91,14 @@ func fail(msg string, args ...any) {
 var errRestoreSnapshotUsage = errors.New("restore-snapshot requires a path to a snapshot zip: leafwiki [--data-dir <DIR>] restore-snapshot <path-to-zip>")
 
 // runRestoreSnapshotCommand implements the `restore-snapshot` command.
-func runRestoreSnapshotCommand(dataDir, snapshotPath string) error {
+// Postgres mode refuses: restores are database operations (pg_restore) —
+// the data dir only holds scratch state then (ADR-0018).
+func runRestoreSnapshotCommand(dataDir, snapshotPath, databaseURL string) error {
 	if snapshotPath == "" {
 		return errRestoreSnapshotUsage
+	}
+	if databaseURL != "" {
+		return errors.New("restore-snapshot is unavailable in Postgres mode — restore via pg_restore on the database (ADR-0018)")
 	}
 	if err := restore.RestoreOffline(dataDir, snapshotPath); err != nil {
 		return fmt.Errorf("restore failed: %w", err)
@@ -255,9 +260,15 @@ func runServerCommand(_ context.Context, cmd *cli.Command, cfg *serverConfig) er
 	// Initialize git backup before the wiki loads its tree: on first contact with
 	// an existing backup this syncs its content into the data directory, so the
 	// wiki boots with those pages and does not seed a welcome page on top of them.
-	backupManager, err := buildBackupManager(cfg)
-	if err != nil {
-		fail("git backup init failed: %v", err)
+	var backupManager *backup.Manager
+	if cfg.server.databaseURL != "" && cfg.backup.gitBackup {
+		fmt.Println("git backup disabled in Postgres mode — backups belong to the database (ADR-0018)")
+	}
+	if cfg.server.databaseURL == "" {
+		backupManager, err = buildBackupManager(cfg)
+		if err != nil {
+			fail("git backup init failed: %v", err)
+		}
 	}
 
 	w, err := wiki.NewWiki(&wiki.WikiOptions{
@@ -314,17 +325,24 @@ func runServerCommand(_ context.Context, cmd *cli.Command, cfg *serverConfig) er
 		}
 	}()
 
-	defer backupManager.Stop()
+	if backupManager != nil {
+		defer backupManager.Stop()
+	}
 	// A settings Reconfigure (or the settings-managed manager's own background
 	// boot) can materialize remote content straight onto disk after the wiki's
 	// tree/SQLite index has already loaded — keep the index from going stale by
 	// triggering the same resync used for SIGUSR1/SIGHUP.
-	backupManager.SetOnContentSynced(w.TriggerResyncAsync)
-	w.SetBackupRoutes(wikibackup.NewRoutes(backupManager, w.AuthService()))
+	if backupManager != nil {
+		backupManager.SetOnContentSynced(w.TriggerResyncAsync)
+		w.SetBackupRoutes(wikibackup.NewRoutes(backupManager, w.AuthService()))
+	}
 
 	// Initialize full backup snapshots if enabled
 	var writeGate *restore.WriteGate
-	if cfg.backup.snapshot {
+	if cfg.backup.snapshot && cfg.server.databaseURL != "" {
+		fmt.Println("snapshots and restore disabled in Postgres mode — backups belong to the database (ADR-0018)")
+	}
+	if cfg.backup.snapshot && cfg.server.databaseURL == "" {
 		snapshotsDir := cfg.backup.snapshotDir
 		if snapshotsDir == "" {
 			snapshotsDir = filepath.Join(cfg.server.dataDir, "snapshots")
@@ -388,9 +406,9 @@ func runServerCommand(_ context.Context, cmd *cli.Command, cfg *serverConfig) er
 		EnableLinkRefactor:      cfg.frontend.enableLinkRefactor,
 		EnableAPIKeyManagement:  cfg.frontend.enableAPIKeyManagement,
 		Metrics:                 metrics,
-		GitBackupEnabled:        backupManager.Enabled(),
-		GitBackupEnvManaged:     backupManager.EnvManaged(),
-		GitBackupConfigured:     backupManager.Configured(),
+		GitBackupEnabled:        backupManager != nil && backupManager.Enabled(),
+		GitBackupEnvManaged:     backupManager != nil && backupManager.EnvManaged(),
+		GitBackupConfigured:     backupManager != nil && backupManager.Configured(),
 		SnapshotEnabled:         cfg.backup.snapshot,
 		SMTPEnabled:             smtpEnabled,
 		TOTPAvailable:           w.TOTPService() != nil,

@@ -687,7 +687,7 @@ func TestSetupLogger_SelectsHandlerByFormat(t *testing.T) {
 }
 
 func TestRunRestoreSnapshotCommand_MissingArg_ReturnsUsageError(t *testing.T) {
-	err := runRestoreSnapshotCommand(t.TempDir(), "")
+	err := runRestoreSnapshotCommand(t.TempDir(), "", "")
 	if !errors.Is(err, errRestoreSnapshotUsage) {
 		t.Fatalf("runRestoreSnapshotCommand() error = %v, want errRestoreSnapshotUsage", err)
 	}
@@ -697,7 +697,7 @@ func TestRunRestoreSnapshotCommand_InvalidZipPath_PropagatesError(t *testing.T) 
 	dataDir := t.TempDir()
 	zipPath := filepath.Join(dataDir, "does-not-exist.zip")
 
-	err := runRestoreSnapshotCommand(dataDir, zipPath)
+	err := runRestoreSnapshotCommand(dataDir, zipPath, "")
 	if err == nil {
 		t.Fatal("runRestoreSnapshotCommand() expected an error for a non-existent snapshot zip, got nil")
 	}

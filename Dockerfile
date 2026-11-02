@@ -35,7 +35,7 @@ RUN mkdir -p /app/data && chmod 777 /app/data
 LABEL org.opencontainers.image.title="LeafWiki" \
       org.opencontainers.image.description="LeafWiki – A fast wiki for people who think in folders, not feeds" \
       org.opencontainers.image.url="https://demo.leafwiki.com" \
-      org.opencontainers.image.source="https://github.com/perber/leafwiki" \
+      org.opencontainers.image.source="https://github.com/p1nk71/leafwiki" \
       org.opencontainers.image.licenses="MIT"
 
 ENTRYPOINT ["/docker-entrypoint.sh"]

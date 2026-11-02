@@ -11,6 +11,7 @@ import (
 
 	"github.com/perber/wiki/internal/core/markdown"
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
+	"github.com/perber/wiki/internal/core/shared/vfs"
 	"github.com/perber/wiki/internal/core/tree"
 )
 
@@ -360,14 +361,14 @@ func TestRestoreAssetsHelpers(t *testing.T) {
 	if err := os.WriteFile(assetPath, []byte("css"), 0o644); err != nil {
 		t.Fatalf("WriteFile standalone asset failed: %v", err)
 	}
-	ref, err := buildAssetRef(assetPath, "style.css")
+	ref, err := buildAssetRef(vfs.OS{}, assetPath, "style.css")
 	if err != nil {
 		t.Fatalf("buildAssetRef failed: %v", err)
 	}
 	if ref.MIMEType == "application/octet-stream" {
 		t.Fatalf("expected extension-based mime type, got %#v", ref)
 	}
-	if _, err := buildAssetRef(filepath.Join(storageDir, "missing.txt"), "missing.txt"); err == nil {
+	if _, err := buildAssetRef(vfs.OS{}, filepath.Join(storageDir, "missing.txt"), "missing.txt"); err == nil {
 		t.Fatalf("expected buildAssetRef on missing file to fail")
 	}
 }
@@ -420,7 +421,7 @@ func TestPersistAndScanAssetHelperBranches(t *testing.T) {
 	if err := service.persistLiveAssets(pageID, []AssetRef{{Name: "a.txt", SHA256: "wrong", SizeBytes: int64(len("asset"))}}); err == nil {
 		t.Fatalf("expected hash mismatch")
 	}
-	goodRef, err := buildAssetRef(filepath.Join(storageDir, "assets", pageID, "a.txt"), "a.txt")
+	goodRef, err := buildAssetRef(vfs.OS{}, filepath.Join(storageDir, "assets", pageID, "a.txt"), "a.txt")
 	if err != nil {
 		t.Fatalf("buildAssetRef failed: %v", err)
 	}

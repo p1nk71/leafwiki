@@ -16,7 +16,7 @@ If you've looked at Wiki.js or Outline and thought "this is too much to operate 
 
 ```bash
 docker run -p 8080:8080 -v ~/leafwiki-data:/app/data \
-  ghcr.io/perber/leafwiki:latest \
+  ghcr.io/p1nk71/leafwiki:latest \
   --jwt-secret=yoursecret --admin-password=yourpassword --allow-insecure=true
 ```
 
@@ -135,7 +135,7 @@ LeafWiki is intentionally narrower than those systems. That focus is part of the
 ```bash
 docker run -p 8080:8080 \
     -v ~/leafwiki-data:/app/data \
-    ghcr.io/perber/leafwiki:latest \
+    ghcr.io/p1nk71/leafwiki:latest \
     --jwt-secret=yoursecret \
     --admin-password=yourpassword \
     --allow-insecure=true
@@ -149,7 +149,7 @@ docker run -p 8080:8080 \
 docker run -p 8080:8080 \
     -u 1000:1000 \
     -v ~/leafwiki-data:/app/data \
-    ghcr.io/perber/leafwiki:latest \
+    ghcr.io/p1nk71/leafwiki:latest \
     --jwt-secret=yoursecret \
     --admin-password=yourpassword \
     --allow-insecure=true
@@ -162,7 +162,7 @@ The data directory must be writable by the specified user.
 ```yaml
 services:
   leafwiki:
-    image: ghcr.io/perber/leafwiki:latest
+    image: ghcr.io/p1nk71/leafwiki:latest
     container_name: leafwiki
     user: 1000:1000
     ports:
@@ -176,9 +176,42 @@ services:
     restart: unless-stopped
 ```
 
+### Docker Compose — Postgres mode (ADR-0018)
+
+All canonical data lives in PostgreSQL; the container is disposable and needs no
+volume (the `/app/data` scratch dir holds only rebuildable indexes):
+
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=leafwiki
+    restart: unless-stopped
+
+  leafwiki:
+    image: ghcr.io/p1nk71/leafwiki:latest
+    container_name: leafwiki
+    ports:
+      - "8080:8080"
+    environment:
+      - LEAFWIKI_JWT_SECRET=yourSecret
+      - LEAFWIKI_ADMIN_PASSWORD=yourPassword
+      - LEAFWIKI_ALLOW_INSECURE=true
+      - LEAFWIKI_DATABASE_URL=postgres://postgres:postgres@postgres:5432/leafwiki
+    depends_on:
+      - postgres
+    restart: unless-stopped
+```
+
+In Postgres mode `--snapshot`, live restore and `--git-backup` are disabled —
+backups belong to the database (`pg_dump`/`pg_restore`). Without
+`LEAFWIKI_DATABASE_URL` everything stays filesystem-backed as before.
+
 ### Kubernetes
 
-See [docs/install/kubernetes.md](docs/install/kubernetes.md) for a `Deployment` + `PersistentVolumeClaim` + `Service` + `Ingress` example (Gateway API alternative included).
+See [docs/install/kubernetes.md](docs/install/kubernetes.md) for a `Deployment` + `PersistentVolumeClaim` + `Service` + `Ingress` example (Gateway API alternative included) — plus a Postgres-mode variant without a PVC.
 
 ### Linux installer
 

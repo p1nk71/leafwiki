@@ -1,6 +1,8 @@
 package revision
 
 import (
+	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -20,6 +22,8 @@ import (
 	"github.com/perber/wiki/internal/core/markdown"
 	"github.com/perber/wiki/internal/core/shared"
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/perber/wiki/internal/core/shared/vfs"
 	"github.com/perber/wiki/internal/core/tree"
 )
 
@@ -39,6 +43,8 @@ type Service struct {
 	storageDir         string
 	pages              *tree.TreeService
 	store              *FSStore
+	pg                 *pgxpool.Pool
+	assetFS            vfs.FS
 	maxRevisions       int // 0 = unlimited
 	coalesceWindow     time.Duration
 	log                *slog.Logger
@@ -49,6 +55,17 @@ type Service struct {
 type ServiceOptions struct {
 	MaxRevisions   int           // Maximum revisions to keep per page; 0 = unlimited
 	CoalesceWindow time.Duration // Window for coalescing rapid successive saves; 0 = disabled
+	// PG switches the revision store to the revision_files table (ADR-0018).
+	PG *pgxpool.Pool
+	// AssetFS is the live-assets filesystem — same backend the asset service
+	// uses, so snapshots/restores work against whichever store is active.
+	AssetFS vfs.FS
+}
+
+// Migrate applies the revision_files schema when the service is
+// Postgres-backed (ADR-0018). Called once at boot by the composition root.
+func (s *Service) Migrate(ctx context.Context) error {
+	return s.store.Migrate(ctx)
 }
 
 func NewService(storageDir string, pages *tree.TreeService, logger *slog.Logger, opts ...ServiceOptions) *Service {
@@ -58,14 +75,22 @@ func NewService(storageDir string, pages *tree.TreeService, logger *slog.Logger,
 
 	var maxRevisions int
 	var coalesceWindow time.Duration
+	var pg *pgxpool.Pool
+	assetFS := vfs.FS(vfs.OS{})
 	if len(opts) > 0 {
 		maxRevisions = opts[0].MaxRevisions
 		coalesceWindow = opts[0].CoalesceWindow
+		pg = opts[0].PG
+		if opts[0].AssetFS != nil {
+			assetFS = opts[0].AssetFS
+		}
 	}
 
-	store := NewFSStore(storageDir, logger)
+	store := NewFSStore(storageDir, logger, pg)
 	return &Service{
 		storageDir:     storageDir,
+		pg:             pg,
+		assetFS:        assetFS,
 		pages:          pages,
 		store:          store,
 		maxRevisions:   maxRevisions,
@@ -392,7 +417,7 @@ func (s *Service) GetRevisionAsset(pageID, revisionID, assetName string) (*Revis
 		}
 
 		blobPath := s.store.AssetBlobPath(asset.SHA256)
-		if _, err := os.Stat(blobPath); err != nil {
+		if _, err := s.store.vfs.Stat(blobPath); err != nil {
 			return nil, sharederrors.NewLocalizedError(
 				"revision_preview_asset_blob_unavailable",
 				"Revision asset is unavailable",
@@ -943,7 +968,11 @@ func (s *Service) persistLiveAssets(pageID string, refs []AssetRef) error {
 
 	for _, ref := range refs {
 		srcPath := filepath.Join(s.liveAssetDir(pageID), ref.Name)
-		hash, size, err := s.store.SaveAssetBlobFromPath(srcPath)
+		data, err := s.assetFS.ReadFile(srcPath)
+		if err != nil {
+			return fmt.Errorf("read live asset %s: %w", srcPath, err)
+		}
+		hash, size, err := s.store.SaveAssetBlob(data)
 		if err != nil {
 			return err
 		}
@@ -959,7 +988,7 @@ func (s *Service) persistLiveAssets(pageID string, refs []AssetRef) error {
 
 func (s *Service) scanLiveAssets(pageID string) ([]AssetRef, error) {
 	dir := s.liveAssetDir(pageID)
-	entries, err := os.ReadDir(dir)
+	entries, err := s.assetFS.ReadDir(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []AssetRef{}, nil
@@ -976,7 +1005,7 @@ func (s *Service) scanLiveAssets(pageID string) ([]AssetRef, error) {
 		name := entry.Name()
 		absPath := filepath.Join(dir, name)
 
-		ref, err := buildAssetRef(absPath, name)
+		ref, err := buildAssetRef(s.assetFS, absPath, name)
 		if err != nil {
 			return nil, err
 		}
@@ -1000,15 +1029,14 @@ func (s *Service) liveAssetDir(pageID string) string {
 	return filepath.Join(s.storageDir, "assets", pageID)
 }
 
-func buildAssetRef(absPath, name string) (AssetRef, error) {
-	file, err := os.Open(absPath)
+func buildAssetRef(fsys vfs.FS, absPath, name string) (AssetRef, error) {
+	raw, err := fsys.ReadFile(absPath)
 	if err != nil {
 		return AssetRef{}, fmt.Errorf("open asset %s: %w", absPath, err)
 	}
-	defer func() { _ = file.Close() }()
 
 	hasher := sha256.New()
-	size, err := io.Copy(hasher, file)
+	size, err := io.Copy(hasher, bytes.NewReader(raw))
 	if err != nil {
 		return AssetRef{}, fmt.Errorf("hash asset %s: %w", absPath, err)
 	}
@@ -1040,13 +1068,13 @@ func computeAssetManifestHash(items []AssetRef) (string, error) {
 
 func (s *Service) restoreAssets(pageID string, refs []AssetRef) error {
 	dir := s.liveAssetDir(pageID)
-	if err := os.RemoveAll(dir); err != nil && !os.IsNotExist(err) {
+	if err := s.assetFS.RemoveAll(dir); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("reset live asset dir: %w", err)
 	}
 	if len(refs) == 0 {
 		return nil
 	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := s.assetFS.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("ensure live asset dir: %w", err)
 	}
 
@@ -1061,7 +1089,11 @@ func (s *Service) restoreAssets(pageID string, refs []AssetRef) error {
 		}
 		seen[name] = struct{}{}
 
-		if err := s.store.CopyAssetBlobToPath(ref.SHA256, ref.SizeBytes, filepath.Join(dir, name)); err != nil {
+		data, err := s.store.AssetBlobData(ref.SHA256, ref.SizeBytes)
+		if err != nil {
+			return fmt.Errorf("restore asset %s: %w", name, err)
+		}
+		if err := s.assetFS.WriteFileAtomic(filepath.Join(dir, name), data, 0o644); err != nil {
 			return fmt.Errorf("restore asset %s: %w", name, err)
 		}
 	}

@@ -169,6 +169,10 @@ func (s *AssetService) GetAssetsDir() string {
 // IsPG reports whether the service stores assets in Postgres (ADR-0018).
 func (s *AssetService) IsPG() bool { return s.pg != nil }
 
+// FS exposes the backing filesystem — the revision service snapshots and
+// restores through whichever backend is active.
+func (s *AssetService) FS() vfs.FS { return s.vfs }
+
 // ReadAssetData returns an asset's bytes by its path under assetsDir —
 // the HTTP layer serves bytes, not paths, in Postgres mode.
 func (s *AssetService) ReadAssetData(path string) ([]byte, error) {

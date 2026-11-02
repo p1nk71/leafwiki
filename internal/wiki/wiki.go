@@ -197,7 +197,12 @@ func (w *Wiki) boot(options *WikiOptions) error {
 			revision.ServiceOptions{
 				MaxRevisions:   options.MaxRevisionHistory,
 				CoalesceWindow: options.RevisionCoalesceWindow,
+				PG:             w.pg,
+				AssetFS:        w.asset.FS(),
 			})
+		if err := w.revision.Migrate(context.Background()); err != nil {
+			return fmt.Errorf("revision migrations: %w", err)
+		}
 		w.ensureBaselineRevisions()
 	}
 	w.metrics.RegisterRuntimeStats(runtimeStatsSource{w: w})

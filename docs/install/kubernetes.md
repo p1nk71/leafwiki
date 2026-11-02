@@ -56,7 +56,7 @@ spec:
       enableServiceLinks: false
       containers:
         - name: leafwiki
-          image: ghcr.io/perber/leafwiki:latest
+          image: ghcr.io/p1nk71/leafwiki:latest
           args:
             - "--host=0.0.0.0"
             # Only needed if nothing in front of LeafWiki terminates TLS and
@@ -203,6 +203,71 @@ spec:
 ```
 
 Whether this is actually required depends on your cluster's `StorageClass`/CSI driver — some (like kind's default) already hand out world-writable volumes, others (most cloud block storage) mount them owned by `root:root`. Setting `fsGroup` covers both cases.
+
+## Postgres mode (ADR-0018)
+
+When all canonical data lives in a managed PostgreSQL the pod needs no PVC —
+`LEAFWIKI_DATABASE_URL` points at the database and `/app/data` is a disposable
+scratch dir holding only rebuildable SQLite indexes:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leafwiki
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: leafwiki
+  template:
+    metadata:
+      labels:
+        app: leafwiki
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: leafwiki
+          image: ghcr.io/p1nk71/leafwiki:latest
+          args:
+            - "--host=0.0.0.0"
+            - "--allow-insecure=true"
+          ports:
+            - containerPort: 8080
+          env:
+            - name: LEAFWIKI_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: leafwiki-secret
+                  key: admin_password
+            - name: LEAFWIKI_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: leafwiki-secret
+                  key: jwt_secret
+            - name: LEAFWIKI_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: leafwiki-secret
+                  key: database_url
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          emptyDir: {}  # scratch only — canonical state is in Postgres
+```
+
+Notes:
+
+- `replicas` stays at `1` — LeafWiki is still single-instance by design, even
+  with external storage.
+- Snapshots, live restore and git backup are disabled in Postgres mode —
+  backups are the database's job (`pg_dump`, provider snapshots, WAL
+  archiving).
+- The `leafwiki-secret` needs `admin_password`, `jwt_secret` and
+  `database_url` keys, e.g.
+  `postgres://leafwiki:secret@db.example.com:5432/leafwiki`.
 
 ## Git backup / snapshots / SMTP
 

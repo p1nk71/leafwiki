@@ -168,7 +168,8 @@ func (f *PG) ensureDirsTx(tx *pgdb.Tx, rel string) error {
 		case errors.Is(err, sql.ErrNoRows):
 			if _, err := tx.Exec(
 				fmt.Sprintf(`INSERT INTO %s (path, parent_path, name, kind)
-				 VALUES ($1, $2, $3, 'dir')`, f.table), a, dirPart(a), basePart(a)); err != nil {
+				 VALUES ($1, $2, $3, 'dir')
+				 ON CONFLICT (path) DO NOTHING`, f.table), a, dirPart(a), basePart(a)); err != nil {
 				return err
 			}
 		case err != nil:
@@ -249,7 +250,8 @@ func (f *PG) MkdirAll(path string, _ fs.FileMode) error {
 		case errors.Is(err, sql.ErrNoRows):
 			if _, err := tx.Exec(
 				fmt.Sprintf(`INSERT INTO %s (path, parent_path, name, kind)
-				 VALUES ($1, $2, $3, 'dir')`, f.table), a, dirPart(a), basePart(a)); err != nil {
+				 VALUES ($1, $2, $3, 'dir')
+				 ON CONFLICT (path) DO NOTHING`, f.table), a, dirPart(a), basePart(a)); err != nil {
 				return err
 			}
 		case err != nil:

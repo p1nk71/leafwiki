@@ -11,7 +11,7 @@ import (
 )
 
 func TestFSStoreRevisionReadPaths(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	created1 := time.Date(2026, 3, 26, 10, 0, 0, 0, time.UTC)
 	created2 := created1.Add(time.Minute)
 	created3 := created2.Add(time.Minute)
@@ -65,7 +65,7 @@ func TestFSStoreRevisionReadPaths(t *testing.T) {
 }
 
 func TestFSStoreBlobPaths(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 
 	contentHash, err := store.SaveContentBlob("test-page", []byte("hello"))
 	if err != nil {
@@ -116,7 +116,7 @@ func TestFSStoreBlobPaths(t *testing.T) {
 }
 
 func TestFSStoreDeletePageRevisions(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	createdAt := time.Date(2026, 4, 12, 18, 0, 0, 0, time.UTC)
 
 	revision := &Revision{
@@ -157,7 +157,7 @@ func TestFSStoreDeletePageRevisions(t *testing.T) {
 }
 
 func TestFSStoreValidationAndEmptyPaths(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 
 	if _, err := store.ReadContentBlob("test-page", ""); err != nil {
 		t.Fatalf("ReadContentBlob empty hash failed: %v", err)
@@ -174,7 +174,7 @@ func TestFSStoreValidationAndEmptyPaths(t *testing.T) {
 }
 
 func TestFSStoreGetRevision_BackwardCompatibleWithoutExtraFrontmatterFields(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	createdAt := time.Date(2026, 4, 20, 15, 4, 5, 0, time.UTC)
 	pageID := "page-1"
 	revisionID := "rev-legacy"
@@ -200,7 +200,7 @@ func TestFSStoreGetRevision_BackwardCompatibleWithoutExtraFrontmatterFields(t *t
 	if err := os.MkdirAll(filepath.Dir(revisionPath), 0o755); err != nil {
 		t.Fatalf("MkdirAll failed: %v", err)
 	}
-	if err := writeJSONAtomic(revisionPath, payload); err != nil {
+	if err := store.writeJSONAtomic(revisionPath, payload); err != nil {
 		t.Fatalf("writeJSONAtomic failed: %v", err)
 	}
 	if err := store.saveRevisionIndex(pageID, revisionIndex{revisionID: filepath.Base(revisionPath)}); err != nil {
@@ -223,7 +223,7 @@ func TestFSStoreGetRevision_BackwardCompatibleWithoutExtraFrontmatterFields(t *t
 }
 
 func TestFSStoreListRevisionWrappersAndValidation(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	if got, err := store.ListRevisions("missing"); err != nil || len(got) != 0 {
 		t.Fatalf("ListRevisions(missing) = %#v, %v", got, err)
 	}
@@ -251,7 +251,7 @@ func TestFSStoreListRevisionWrappersAndValidation(t *testing.T) {
 }
 
 func TestFSStoreIdempotentSaves(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 
 	h1, err := store.SaveContentBlob("test-page", []byte("same"))
 	if err != nil {
@@ -304,7 +304,7 @@ func TestFSStoreIdempotentSaves(t *testing.T) {
 }
 
 func TestFSStoreCursorAndFileFilteringHelpers(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	pageID := "page-1"
 	created := time.Date(2026, 3, 26, 12, 0, 0, 0, time.UTC)
 	for i := 0; i < 2; i++ {
@@ -347,7 +347,7 @@ func TestFSStoreCursorAndFileFilteringHelpers(t *testing.T) {
 }
 
 func TestFSStoreSaveRevisionRejectsInvalidRevisionID(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	rev := &Revision{
 		ID:        "x/../../outside",
 		PageID:    "page-1",
@@ -367,7 +367,7 @@ func TestFSStoreSaveRevisionRejectsInvalidRevisionID(t *testing.T) {
 }
 
 func TestFSStoreSaveRevisionPrefersPageIDValidationError(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	rev := &Revision{
 		ID:        "x/../../outside",
 		PageID:    "../page-1",
@@ -387,13 +387,14 @@ func TestFSStoreSaveRevisionPrefersPageIDValidationError(t *testing.T) {
 }
 
 func TestFSStoreJSONHelpersAndLocalizedNil(t *testing.T) {
+	store := NewFSStore(t.TempDir(), nil, nil)
 	path := filepath.Join(t.TempDir(), "value.json")
 	payload := map[string]string{"a": "b"}
-	if err := writeJSONAtomic(path, payload); err != nil {
+	if err := store.writeJSONAtomic(path, payload); err != nil {
 		t.Fatalf("writeJSONAtomic failed: %v", err)
 	}
 	var got map[string]string
-	if err := readJSON(path, &got); err != nil {
+	if err := store.readJSON(path, &got); err != nil {
 		t.Fatalf("readJSON failed: %v", err)
 	}
 	if got["a"] != "b" {
@@ -404,7 +405,7 @@ func TestFSStoreJSONHelpersAndLocalizedNil(t *testing.T) {
 	if err := os.WriteFile(badPath, []byte("{"), 0o644); err != nil {
 		t.Fatalf("WriteFile bad json failed: %v", err)
 	}
-	if err := readJSON(badPath, &got); err == nil {
+	if err := store.readJSON(badPath, &got); err == nil {
 		t.Fatalf("expected invalid json to fail")
 	}
 
@@ -443,7 +444,7 @@ func TestValidateStorageID(t *testing.T) {
 }
 
 func TestFSStoreRejectsPathTraversalPageID(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 
 	traversalIDs := []string{
 		"../other",
@@ -475,7 +476,7 @@ func TestFSStoreRejectsPathTraversalPageID(t *testing.T) {
 }
 
 func TestFSStoreAssetBlobErrors(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	if _, _, err := store.SaveAssetBlobFromPath(filepath.Join(t.TempDir(), "missing.txt")); err == nil {
 		t.Fatalf("expected SaveAssetBlobFromPath on missing file to fail")
 	}
@@ -487,7 +488,7 @@ func TestFSStoreFailuresOnInvalidBasePath(t *testing.T) {
 	if err := os.WriteFile(invalidBase, []byte("x"), 0o644); err != nil {
 		t.Fatalf("WriteFile invalid base failed: %v", err)
 	}
-	store := NewFSStore(invalidBase, nil)
+	store := NewFSStore(invalidBase, nil, nil)
 
 	if _, err := store.SaveContentBlob("test-page", []byte("hello")); err == nil {
 		t.Fatalf("expected SaveContentBlob to fail")
@@ -511,14 +512,14 @@ func TestFSStoreFailuresOnInvalidBasePath(t *testing.T) {
 	// A path under a regular file reports not-exist on Windows, which
 	// ListRevisions treats as "no revisions" by design. A NUL byte makes
 	// ReadDir fail with an invalid-argument error on every OS (#1698).
-	nulBaseStore := NewFSStore(filepath.Join(root, "bad\x00base"), nil)
+	nulBaseStore := NewFSStore(filepath.Join(root, "bad\x00base"), nil, nil)
 	if _, err := nulBaseStore.ListRevisions("page-1"); err == nil {
 		t.Fatalf("expected ListRevisions to fail")
 	}
 }
 
 func TestFSStoreGetRevisionUsesAndBackfillsIndex(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	created := time.Date(2026, 3, 26, 12, 30, 0, 0, time.UTC)
 	rev := &Revision{ID: "rev-index", PageID: "page-1", CreatedAt: created, Type: RevisionTypeContentUpdate, Title: "Page", Slug: "page"}
 	if err := store.SaveRevision(rev); err != nil {
@@ -553,7 +554,7 @@ func TestFSStoreGetRevisionUsesAndBackfillsIndex(t *testing.T) {
 }
 
 func TestFSStoreUpdateRevision(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	created := time.Date(2026, 3, 26, 12, 0, 0, 0, time.UTC)
 	rev := &Revision{
 		ID: "rev-1", PageID: "page-1", CreatedAt: created,
@@ -582,7 +583,7 @@ func TestFSStoreUpdateRevision(t *testing.T) {
 }
 
 func TestFSStoreUpdateRevision_RejectsInvalidPageID(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	rev := &Revision{ID: "rev-1", PageID: "../evil", Type: RevisionTypeContentUpdate}
 	if err := store.UpdateRevision(rev); err == nil {
 		t.Fatalf("expected UpdateRevision to reject path-traversal page ID")
@@ -590,7 +591,7 @@ func TestFSStoreUpdateRevision_RejectsInvalidPageID(t *testing.T) {
 }
 
 func TestFSStoreUpdateRevision_UnknownRevisionReturnsError(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	rev := &Revision{ID: "nonexistent", PageID: "page-1", Type: RevisionTypeContentUpdate}
 	if err := store.UpdateRevision(rev); err == nil {
 		t.Fatalf("expected UpdateRevision to fail for unknown revision ID")
@@ -598,7 +599,7 @@ func TestFSStoreUpdateRevision_UnknownRevisionReturnsError(t *testing.T) {
 }
 
 func TestFSStoreDeleteContentBlobIfUnreferenced_DeletesScopedBlob(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	pageID := "page-1"
 
 	hash, err := store.SaveContentBlob(pageID, []byte("orphaned content"))
@@ -619,7 +620,7 @@ func TestFSStoreDeleteContentBlobIfUnreferenced_DeletesScopedBlob(t *testing.T) 
 }
 
 func TestFSStoreDeleteContentBlobIfUnreferenced_KeepsBlobWhenReferenced(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	pageID := "page-1"
 	created := time.Date(2026, 3, 26, 12, 0, 0, 0, time.UTC)
 
@@ -647,7 +648,7 @@ func TestFSStoreDeleteContentBlobIfUnreferenced_KeepsBlobWhenReferenced(t *testi
 }
 
 func TestFSStoreDeleteContentBlobIfUnreferenced_DoesNotDeleteLegacyBlob(t *testing.T) {
-	store := NewFSStore(t.TempDir(), nil)
+	store := NewFSStore(t.TempDir(), nil, nil)
 	pageID := "page-1"
 
 	content := []byte("legacy content")

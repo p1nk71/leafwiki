@@ -139,7 +139,7 @@ func newRestoreSnapshotCommand(cfg *serverConfig) *cli.Command {
 		Usage:     "Restore a snapshot ZIP into the data directory while the server is stopped",
 		ArgsUsage: "<path-to-zip>",
 		Action: func(_ context.Context, cmd *cli.Command) error {
-			return runRestoreSnapshotCommand(cfg.server.dataDir, cmd.Args().First())
+			return runRestoreSnapshotCommand(cfg.server.dataDir, cmd.Args().First(), cfg.server.databaseURL)
 		},
 	}
 }
