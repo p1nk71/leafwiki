@@ -106,11 +106,12 @@ func (w *Wiki) initEmail(options *WikiOptions) error {
 }
 
 func (w *Wiki) initCoreServices(options *WikiOptions) error {
-	// Create a shared ignore cache for multi-level .leafwikiignore resolution.
-	rootDir := filepath.Join(w.storageDir, "root")
-	w.ignoreCache = ignore.NewCache(rootDir)
+	w.tree = tree.NewTreeService(w.storageDir, w.pg)
 
-	w.tree = tree.NewTreeService(w.storageDir)
+	// Shared ignore cache for multi-level .leafwikiignore resolution; reads
+	// go through the tree backend so Postgres mode works identically.
+	rootDir := filepath.Join(w.storageDir, "root")
+	w.ignoreCache = ignore.NewCacheWithReader(rootDir, w.tree.ReadTreeFile)
 	w.tree.SetIgnoreCache(w.ignoreCache)
 	if err := w.tree.LoadTree(); err != nil {
 		return err

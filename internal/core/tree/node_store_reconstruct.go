@@ -55,12 +55,12 @@ func ensureUniqueReconstructedSlug(seenSlugs map[string]string, slug string, pat
 // that are missing any managed metadata field.
 func (f *NodeStore) writeReconstructedFrontmatter(mdFile *markdown.MarkdownFile, entry *PageNode) {
 	var originalModTime time.Time
-	if info, err := os.Stat(mdFile.GetPath()); err == nil {
+	if info, err := f.vfs.Stat(mdFile.GetPath()); err == nil {
 		originalModTime = info.ModTime()
 	}
 
 	f.syncManagedFrontmatter(mdFile, entry)
-	if err := mdFile.WriteToFile(); err != nil {
+	if err := mdFile.WriteToFileVia(f.vfs.WriteFileAtomic); err != nil {
 		f.log.Error("could not write metadata back to file during reconstruct", "path", mdFile.GetPath(), "error", err)
 		return
 	}
@@ -76,7 +76,7 @@ func (f *NodeStore) LoadTree(filename string) (*PageNode, error) {
 	fullPath := filepath.Join(f.storageDir, filename)
 
 	// check if file exists
-	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+	if _, err := f.vfs.Stat(fullPath); os.IsNotExist(err) {
 		return &PageNode{
 			ID:       "root",
 			Slug:     "root",
@@ -137,7 +137,7 @@ func (f *NodeStore) ReconstructTreeFromFSContext(ctx context.Context) (*PageNode
 	}
 	seenIDs := map[string]string{"root": rootDir}
 
-	info, err := os.Stat(rootDir)
+	info, err := f.vfs.Stat(rootDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// No on-disk content yet; return an empty root tree.
@@ -166,7 +166,7 @@ func (f *NodeStore) reconstructTreeRecursive(ctx context.Context, currentPath st
 		return err
 	}
 
-	entries, err := os.ReadDir(currentPath)
+	entries, err := f.vfs.ReadDir(currentPath)
 	if err != nil {
 		return fmt.Errorf("read dir %s: %w", currentPath, err)
 	}
@@ -212,8 +212,8 @@ func (f *NodeStore) reconstructTreeRecursive(ctx context.Context, currentPath st
 			var sectionMdFile *markdown.MarkdownFile
 			needsWriteback := false
 			sectionPinned := false
-			if fileExists(indexPath) {
-				mdFile, err := markdown.LoadMarkdownFile(indexPath)
+			if fileExists(f.vfs, indexPath) {
+				mdFile, err := markdown.LoadMarkdownFileVia(indexPath, f.vfs.ReadFile)
 				if err != nil {
 					f.log.Error("could not load index.md", "path", indexPath, "error", err)
 					// fall back to default title and generated ID, but still add the section and recurse
@@ -268,7 +268,7 @@ func (f *NodeStore) reconstructTreeRecursive(ctx context.Context, currentPath st
 				f.writeReconstructedFrontmatter(sectionMdFile, child)
 			}
 
-			if !fileExists(indexPath) {
+			if !fileExists(f.vfs, indexPath) {
 				if _, err := f.ensureSectionIndex(child); err != nil {
 					return fmt.Errorf("materialize missing section index for %s: %w", indexPath, err)
 				}
@@ -298,7 +298,7 @@ func (f *NodeStore) reconstructTreeRecursive(ctx context.Context, currentPath st
 
 		filePath := filepath.Join(currentPath, name)
 
-		mdFile, err := markdown.LoadMarkdownFile(filePath)
+		mdFile, err := markdown.LoadMarkdownFileVia(filePath, f.vfs.ReadFile)
 		if err != nil {
 			f.log.Error("could not load markdown file", "path", filePath, "error", err)
 			continue
@@ -395,7 +395,7 @@ func (f *NodeStore) applyChildOrder(parent *PageNode, dirPath string) {
 }
 
 func (f *NodeStore) readChildOrder(dirPath string) (*childOrderFile, error) {
-	raw, err := os.ReadFile(filepath.Join(dirPath, orderFilename))
+	raw, err := f.vfs.ReadFile(filepath.Join(dirPath, orderFilename))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &childOrderFile{}, nil

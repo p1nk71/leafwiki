@@ -21,7 +21,7 @@ func newRevisionAssetRouter(t *testing.T, files map[string]string) (*gin.Engine,
 	gin.SetMode(gin.TestMode)
 
 	storageDir := t.TempDir()
-	treeService := tree.NewTreeService(storageDir)
+	treeService := tree.NewTreeService(storageDir, nil)
 	if err := treeService.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/perber/wiki/internal/core/markdown"
-	"github.com/perber/wiki/internal/core/shared"
 )
 
 func (f *NodeStore) SaveChildOrder(parent *PageNode) error {
@@ -23,7 +22,7 @@ func (f *NodeStore) SaveChildOrder(parent *PageNode) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dirPath, 0o755); err != nil {
+	if err := f.vfs.MkdirAll(dirPath, 0o755); err != nil {
 		return fmt.Errorf(errEnsureParentFailed, err)
 	}
 
@@ -41,7 +40,7 @@ func (f *NodeStore) SaveChildOrder(parent *PageNode) error {
 	}
 	data = append(data, byte('\n'))
 
-	if err := shared.WriteFileAtomic(filepath.Join(dirPath, orderFilename), data, 0o644); err != nil {
+	if err := f.vfs.WriteFileAtomic(filepath.Join(dirPath, orderFilename), data, 0o644); err != nil {
 		return fmt.Errorf("could not atomically write child order file: %w", err)
 	}
 
@@ -75,7 +74,7 @@ func (f *NodeStore) CreatePage(parentEntry *PageNode, newEntry *PageNode) error 
 	}
 
 	// Ensure the parent directory exists (idempotent)
-	if err := os.MkdirAll(parentDir, 0o755); err != nil {
+	if err := f.vfs.MkdirAll(parentDir, 0o755); err != nil {
 		return fmt.Errorf(errEnsureParentFailed, err)
 	}
 
@@ -92,13 +91,13 @@ func (f *NodeStore) CreatePage(parentEntry *PageNode, newEntry *PageNode) error 
 	destDir := destBase
 
 	// Reject if either a file OR a directory with same slug exists
-	if fileExists(destFile) || fileExists(destDir) {
+	if fileExists(f.vfs, destFile) || fileExists(f.vfs, destDir) {
 		return &PageAlreadyExistsError{Path: destBase}
 	}
 
 	mdFile := markdown.NewMarkdownFile(destFile, "# "+newEntry.Title+"\n", markdown.Frontmatter{})
 	f.syncManagedFrontmatter(mdFile, newEntry)
-	if err := mdFile.WriteToFile(); err != nil {
+	if err := mdFile.WriteToFileVia(f.vfs.WriteFileAtomic); err != nil {
 		return fmt.Errorf("could not create file: %w", err)
 	}
 
@@ -132,7 +131,7 @@ func (f *NodeStore) CreateSection(parentEntry *PageNode, newEntry *PageNode) err
 	}
 
 	// Ensure parent directory exists (idempotent)
-	if err := os.MkdirAll(parentDir, 0o755); err != nil {
+	if err := f.vfs.MkdirAll(parentDir, 0o755); err != nil {
 		return fmt.Errorf(errEnsureParentFailed, err)
 	}
 
@@ -149,12 +148,12 @@ func (f *NodeStore) CreateSection(parentEntry *PageNode, newEntry *PageNode) err
 	destDir := destBase
 
 	// Reject if either a file OR a directory with same slug exists
-	if fileExists(destFile) || fileExists(destDir) {
+	if fileExists(f.vfs, destFile) || fileExists(f.vfs, destDir) {
 		return &PageAlreadyExistsError{Path: destBase}
 	}
 
 	// Create the folder for the section and materialize its metadata container.
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
+	if err := f.vfs.MkdirAll(destDir, 0o755); err != nil {
 		return fmt.Errorf("could not create section folder: %w", err)
 	}
 
@@ -181,8 +180,8 @@ func (f *NodeStore) UpsertContent(entry *PageNode, content string) error {
 	}
 
 	mdFile := markdown.NewMarkdownFile(filePath, "", markdown.Frontmatter{})
-	if fileExists(filePath) {
-		mdFile, err = markdown.LoadMarkdownFile(filePath)
+	if fileExists(f.vfs, filePath) {
+		mdFile, err = markdown.LoadMarkdownFileVia(filePath, f.vfs.ReadFile)
 		if err != nil {
 			return fmt.Errorf(errLoadMarkdownFailed, err)
 		}
@@ -190,7 +189,7 @@ func (f *NodeStore) UpsertContent(entry *PageNode, content string) error {
 
 	mdFile.SetContent(content)
 	f.syncManagedFrontmatter(mdFile, entry)
-	if err := mdFile.WriteToFile(); err != nil {
+	if err := mdFile.WriteToFileVia(f.vfs.WriteFileAtomic); err != nil {
 		return fmt.Errorf(errWriteMarkdownFailed, err)
 	}
 
@@ -211,8 +210,8 @@ func (f *NodeStore) UpsertContentPreservingFrontmatter(entry *PageNode, content 
 	}
 
 	mdFile := markdown.NewMarkdownFile(filePath, "", markdown.Frontmatter{})
-	if fileExists(filePath) {
-		mdFile, err = markdown.LoadMarkdownFile(filePath)
+	if fileExists(f.vfs, filePath) {
+		mdFile, err = markdown.LoadMarkdownFileVia(filePath, f.vfs.ReadFile)
 		if err != nil {
 			return fmt.Errorf(errLoadMarkdownFailed, err)
 		}
@@ -222,7 +221,7 @@ func (f *NodeStore) UpsertContentPreservingFrontmatter(entry *PageNode, content 
 		return fmt.Errorf("could not parse markdown content: %w", err)
 	}
 	f.syncManagedFrontmatter(mdFile, entry)
-	if err := mdFile.WriteToFile(); err != nil {
+	if err := mdFile.WriteToFileVia(f.vfs.WriteFileAtomic); err != nil {
 		return fmt.Errorf(errWriteMarkdownFailed, err)
 	}
 
@@ -260,8 +259,8 @@ func (f *NodeStore) UpsertContentAndMetadata(
 	}
 
 	mdFile := markdown.NewMarkdownFile(filePath, "", markdown.Frontmatter{})
-	if fileExists(filePath) {
-		mdFile, err = markdown.LoadMarkdownFile(filePath)
+	if fileExists(f.vfs, filePath) {
+		mdFile, err = markdown.LoadMarkdownFileVia(filePath, f.vfs.ReadFile)
 		if err != nil {
 			return fmt.Errorf(errLoadMarkdownFailed, err)
 		}
@@ -307,7 +306,7 @@ func (f *NodeStore) UpsertContentAndMetadata(
 	mdFile.SetExtraFields(extra)
 
 	f.syncManagedFrontmatter(mdFile, entry)
-	if err := mdFile.WriteToFile(); err != nil {
+	if err := mdFile.WriteToFileVia(f.vfs.WriteFileAtomic); err != nil {
 		return fmt.Errorf(errWriteMarkdownFailed, err)
 	}
 
@@ -337,7 +336,7 @@ func (f *NodeStore) MoveNode(entry *PageNode, parentEntry *PageNode) error {
 		return err
 	}
 
-	if err := os.MkdirAll(parentDir, 0o755); err != nil {
+	if err := f.vfs.MkdirAll(parentDir, 0o755); err != nil {
 		return fmt.Errorf(errEnsureParentFailed, err)
 	}
 
@@ -362,7 +361,7 @@ func (f *NodeStore) MoveNode(entry *PageNode, parentEntry *PageNode) error {
 	destDir := destBase
 
 	// Collision checks: refuse if destination already exists as file OR dir
-	if fileExists(destFile) || fileExists(destDir) {
+	if fileExists(f.vfs, destFile) || fileExists(f.vfs, destDir) {
 		return &PageAlreadyExistsError{Path: destBase}
 	}
 
@@ -370,7 +369,7 @@ func (f *NodeStore) MoveNode(entry *PageNode, parentEntry *PageNode) error {
 	switch entry.Kind {
 	case NodeKindSection:
 		// src must be a directory
-		info, err := os.Stat(oldDir)
+		info, err := f.vfs.Stat(oldDir)
 		if err != nil {
 			if os.IsNotExist(err) {
 				f.log.Warn("move drift: expected folder missing", "nodeID", entry.ID, "expectedDir", oldDir)
@@ -383,13 +382,13 @@ func (f *NodeStore) MoveNode(entry *PageNode, parentEntry *PageNode) error {
 			return &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: oldDir, Reason: errExpectedFolderFoundFile}
 		}
 
-		if err := os.Rename(oldDir, destDir); err != nil {
+		if err := f.vfs.Rename(oldDir, destDir); err != nil {
 			return fmt.Errorf("could not move folder: %w", err)
 		}
 
 	case NodeKindPage:
 		// src must be a file
-		info, err := os.Stat(oldFile)
+		info, err := f.vfs.Stat(oldFile)
 		if err != nil {
 			if os.IsNotExist(err) {
 				f.log.Warn("move drift: expected file missing", "nodeID", entry.ID, "expectedFile", oldFile)
@@ -402,7 +401,7 @@ func (f *NodeStore) MoveNode(entry *PageNode, parentEntry *PageNode) error {
 			return &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: oldFile, Reason: errExpectedFileFoundFolder}
 		}
 
-		if err := os.Rename(oldFile, destFile); err != nil {
+		if err := f.vfs.Rename(oldFile, destFile); err != nil {
 			return fmt.Errorf("could not move file: %w", err)
 		}
 
@@ -431,7 +430,7 @@ func (f *NodeStore) DeletePage(entry *PageNode) error {
 	}
 	file := base + ".md"
 
-	info, err := os.Stat(file)
+	info, err := f.vfs.Stat(file)
 	if err != nil {
 		if os.IsNotExist(err) {
 			f.log.Warn("delete drift: expected page file missing", "nodeID", entry.ID, "expectedFile", file)
@@ -444,7 +443,7 @@ func (f *NodeStore) DeletePage(entry *PageNode) error {
 		return &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: file, Reason: errExpectedFileFoundFolder}
 	}
 
-	if err := os.Remove(file); err != nil {
+	if err := f.vfs.Remove(file); err != nil {
 		return fmt.Errorf("could not delete file: %w", err)
 	}
 
@@ -468,7 +467,7 @@ func (f *NodeStore) DeleteSection(entry *PageNode) error {
 		return err
 	}
 
-	info, err := os.Stat(dir)
+	info, err := f.vfs.Stat(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			f.log.Warn("delete drift: expected section folder missing", "nodeID", entry.ID, "expectedDir", dir)
@@ -481,7 +480,7 @@ func (f *NodeStore) DeleteSection(entry *PageNode) error {
 		return &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: dir, Reason: errExpectedFolderFoundFile}
 	}
 
-	if err := os.RemoveAll(dir); err != nil {
+	if err := f.vfs.RemoveAll(dir); err != nil {
 		return fmt.Errorf("could not delete folder: %w", err)
 	}
 
@@ -519,7 +518,7 @@ func (f *NodeStore) RenameNode(entry *PageNode, newSlug string) error {
 	}
 
 	// destination collision checks
-	if fileExists(newBase+".md") || fileExists(newBase) {
+	if fileExists(f.vfs, newBase+".md") || fileExists(f.vfs, newBase) {
 		return &PageAlreadyExistsError{Path: newBase}
 	}
 	// perform rename based on kind
@@ -529,7 +528,7 @@ func (f *NodeStore) RenameNode(entry *PageNode, newSlug string) error {
 		dstDir := newBase
 
 		// strict: source dir must exist and be dir
-		info, err := os.Stat(srcDir)
+		info, err := f.vfs.Stat(srcDir)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: srcDir, Reason: errExpectedFolderMissing}
@@ -542,7 +541,7 @@ func (f *NodeStore) RenameNode(entry *PageNode, newSlug string) error {
 			return &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: srcDir, Reason: errExpectedFolderFoundFile}
 		}
 
-		if err := os.Rename(srcDir, dstDir); err != nil {
+		if err := f.vfs.Rename(srcDir, dstDir); err != nil {
 			return fmt.Errorf("could not rename folder: %w", err)
 		}
 		return nil
@@ -551,7 +550,7 @@ func (f *NodeStore) RenameNode(entry *PageNode, newSlug string) error {
 		dstFile := newBase + ".md"
 
 		// strict: source file must exist
-		info, err := os.Stat(srcFile)
+		info, err := f.vfs.Stat(srcFile)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: srcFile, Reason: errExpectedFileMissing}
@@ -564,7 +563,7 @@ func (f *NodeStore) RenameNode(entry *PageNode, newSlug string) error {
 			return &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: srcFile, Reason: errExpectedFileFoundFolder}
 		}
 
-		if err := os.Rename(srcFile, dstFile); err != nil {
+		if err := f.vfs.Rename(srcFile, dstFile); err != nil {
 			return fmt.Errorf("could not rename file: %w", err)
 		}
 		return nil
@@ -588,7 +587,7 @@ func (f *NodeStore) SyncFrontmatterIfExists(entry *PageNode) error {
 	}
 
 	// Datei existiert?
-	if !fileExists(filePath) {
+	if !fileExists(f.vfs, filePath) {
 		// Page: muss existieren
 		if entry.Kind == NodeKindPage || entry.Kind == "" {
 			return &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: filePath, Reason: errExpectedPageMissing}
@@ -597,13 +596,13 @@ func (f *NodeStore) SyncFrontmatterIfExists(entry *PageNode) error {
 		return nil
 	}
 
-	mdFile, err := markdown.LoadMarkdownFile(filePath)
+	mdFile, err := markdown.LoadMarkdownFileVia(filePath, f.vfs.ReadFile)
 	if err != nil {
 		return fmt.Errorf("load markdown file: %w", err)
 	}
 
 	f.syncManagedFrontmatter(mdFile, entry)
-	if err := mdFile.WriteToFile(); err != nil {
+	if err := mdFile.WriteToFileVia(f.vfs.WriteFileAtomic); err != nil {
 		return fmt.Errorf("write markdown file: %w", err)
 	}
 	return nil
@@ -627,12 +626,12 @@ func (f *NodeStore) ConvertNode(entry *PageNode, target NodeKind) error {
 	switch target {
 	case NodeKindSection:
 		// page -> folder
-		if _, err := os.Stat(filePath); err == nil {
-			if err := os.MkdirAll(folderPath, 0o755); err != nil {
+		if _, err := f.vfs.Stat(filePath); err == nil {
+			if err := f.vfs.MkdirAll(folderPath, 0o755); err != nil {
 				return fmt.Errorf("could not create folder: %w", err)
 			}
 			// keep content: <slug>.md -> <slug>/index.md
-			if err := os.Rename(filePath, indexPath); err != nil {
+			if err := f.vfs.Rename(filePath, indexPath); err != nil {
 				return fmt.Errorf("could not move page into folder: %w", err)
 			}
 			entry.Kind = NodeKindSection
@@ -642,7 +641,7 @@ func (f *NodeStore) ConvertNode(entry *PageNode, target NodeKind) error {
 			return nil
 		}
 		// already folder (or missing) -> ensure dir exists and materialize index.md
-		if err := os.MkdirAll(folderPath, 0o755); err != nil {
+		if err := f.vfs.MkdirAll(folderPath, 0o755); err != nil {
 			return fmt.Errorf("could not ensure folder exists: %w", err)
 		}
 		entry.Kind = NodeKindSection
@@ -653,7 +652,7 @@ func (f *NodeStore) ConvertNode(entry *PageNode, target NodeKind) error {
 
 	case NodeKindPage:
 		// folder -> page (strict, safe order)
-		info, err := os.Stat(folderPath)
+		info, err := f.vfs.Stat(folderPath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				// nothing to do if folder doesn't exist
@@ -665,7 +664,7 @@ func (f *NodeStore) ConvertNode(entry *PageNode, target NodeKind) error {
 			return &DriftError{NodeID: entry.ID, Kind: NodeKindSection, Path: folderPath, Reason: errExpectedFolderFoundFile}
 		}
 
-		entries, err := os.ReadDir(folderPath)
+		entries, err := f.vfs.ReadDir(folderPath)
 		if err != nil {
 			return err
 		}
@@ -688,24 +687,24 @@ func (f *NodeStore) ConvertNode(entry *PageNode, target NodeKind) error {
 		}
 
 		// now do the move/create
-		if fileExists(indexPath) {
-			if err := os.Rename(indexPath, filePath); err != nil {
+		if fileExists(f.vfs, indexPath) {
+			if err := f.vfs.Rename(indexPath, filePath); err != nil {
 				return fmt.Errorf("could not move index to page: %w", err)
 			}
 		} else {
 			mdFile := markdown.NewMarkdownFile(filePath, "", markdown.Frontmatter{})
 			f.syncManagedFrontmatter(mdFile, entry)
-			if err := mdFile.WriteToFile(); err != nil {
+			if err := mdFile.WriteToFileVia(f.vfs.WriteFileAtomic); err != nil {
 				return fmt.Errorf("could not write page file: %w", err)
 			}
 		}
 
-		if err := os.Remove(filepath.Join(folderPath, orderFilename)); err != nil && !os.IsNotExist(err) {
+		if err := f.vfs.Remove(filepath.Join(folderPath, orderFilename)); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("could not remove child order file: %w", err)
 		}
 
 		// remove folder (must be empty now)
-		if err := os.Remove(folderPath); err != nil {
+		if err := f.vfs.Remove(folderPath); err != nil {
 			return err
 		}
 		return nil
@@ -727,21 +726,21 @@ func (f *NodeStore) SetPinnedFrontmatter(entry *PageNode, pinned bool) (string, 
 		return "", err
 	}
 
-	if !fileExists(filePath) {
+	if !fileExists(f.vfs, filePath) {
 		if entry.Kind == NodeKindPage || entry.Kind == "" {
 			return "", &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: filePath, Reason: errExpectedPageMissing}
 		}
 		return "", &InvalidOpError{Op: "SetPinnedFrontmatter", Reason: "section has no index file and cannot be pinned"}
 	}
 
-	mdFile, err := markdown.LoadMarkdownFile(filePath)
+	mdFile, err := markdown.LoadMarkdownFileVia(filePath, f.vfs.ReadFile)
 	if err != nil {
 		return "", fmt.Errorf("load markdown file: %w", err)
 	}
 
 	mdFile.SetLeafWikiPinned(pinned)
 
-	if err := mdFile.WriteToFile(); err != nil {
+	if err := mdFile.WriteToFileVia(f.vfs.WriteFileAtomic); err != nil {
 		return "", fmt.Errorf("write markdown file: %w", err)
 	}
 

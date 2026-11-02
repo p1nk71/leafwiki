@@ -1,19 +1,23 @@
 package tree
 
 import (
+	"context"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
 	"github.com/perber/wiki/internal/core/ignore"
 	"github.com/perber/wiki/internal/core/markdown"
 )
 
-func fileExists(p string) bool {
-	_, err := os.Stat(p)
+func fileExists(vfs nodeFS, p string) bool {
+	_, err := vfs.Stat(p)
 	return err == nil
 }
 
@@ -29,6 +33,8 @@ type NodeStore struct {
 	log         *slog.Logger
 	slugger     *SlugService
 	ignoreCache *ignore.Cache
+	pg         *pgxpool.Pool
+	vfs        nodeFS
 }
 
 // SetIgnoreCache sets the ignore cache to use for multi-level ignore resolution.
@@ -57,12 +63,34 @@ type childOrderFile struct {
 	OrderedIDs []string `json:"ordered_ids"`
 }
 
-func NewNodeStore(storageDir string) *NodeStore {
-	return &NodeStore{
+// NewNodeStore opens the tree on the filesystem under storageDir — or on
+// the Postgres tree_files table when pg is set (ADR-0018). The Postgres
+// schema migration runs lazily in migratePG during TreeService.LoadTree.
+func NewNodeStore(storageDir string, pg *pgxpool.Pool) *NodeStore {
+	n := &NodeStore{
 		storageDir: storageDir,
 		log:        slog.Default().With("component", "NodeStore"),
 		slugger:    NewSlugService(),
+		vfs:        osFS{},
+		pg:         pg,
 	}
+	if pg != nil {
+		n.vfs = newPgFS(pg, filepath.Join(storageDir, "root"))
+	}
+	return n
+}
+
+// migratePG applies the tree_files schema when the store is Postgres-backed.
+// Called once by TreeService.LoadTree, which can surface the error.
+func (f *NodeStore) migratePG(ctx context.Context) error {
+	if f.pg == nil {
+		return nil
+	}
+	migs, err := fs.Sub(treeMigrations, "migrations/tree_files")
+	if err != nil {
+		return fmt.Errorf("tree migrations: %w", err)
+	}
+	return pgdb.Migrate(ctx, f.pg, "tree_files", migs)
 }
 
 func formatMetadataTime(ts time.Time) string {
@@ -96,15 +124,15 @@ func (f *NodeStore) ensureSectionIndex(entry *PageNode) (string, error) {
 	}
 
 	mdFile := markdown.NewMarkdownFile(filePath, "", markdown.Frontmatter{})
-	if fileExists(filePath) {
-		mdFile, err = markdown.LoadMarkdownFile(filePath)
+	if fileExists(f.vfs, filePath) {
+		mdFile, err = markdown.LoadMarkdownFileVia(filePath, f.vfs.ReadFile)
 		if err != nil {
 			return "", fmt.Errorf(errLoadMarkdownFailed, err)
 		}
 	}
 
 	f.syncManagedFrontmatter(mdFile, entry)
-	if err := mdFile.WriteToFile(); err != nil {
+	if err := mdFile.WriteToFileVia(f.vfs.WriteFileAtomic); err != nil {
 		return "", fmt.Errorf(errWriteMarkdownFailed, err)
 	}
 
@@ -119,7 +147,7 @@ func fallbackMetadataString(value string) string {
 }
 
 func (f *NodeStore) metadataFallbackTime(filePath string, fallback time.Time) time.Time {
-	info, err := os.Stat(filePath)
+	info, err := f.vfs.Stat(filePath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			f.log.Warn("could not stat path for reconstruct metadata fallback, using runtime fallback", "path", filePath, "fallback", fallback.UTC().Format(time.RFC3339), "error", err)
@@ -164,17 +192,17 @@ func (f *NodeStore) ReadPageRaw(entry *PageNode) (string, error) {
 
 	// Sections may legitimately have no content (missing index.md)
 	if entry.Kind == NodeKindSection {
-		if !fileExists(filePath) {
+		if !fileExists(f.vfs, filePath) {
 			return "", nil
 		}
 	} else {
 		// Pages must have a content file
-		if !fileExists(filePath) {
+		if !fileExists(f.vfs, filePath) {
 			return "", &DriftError{NodeID: entry.ID, Kind: entry.Kind, Path: filePath, Reason: errExpectedPageMissing}
 		}
 	}
 
-	raw, err := os.ReadFile(filePath)
+	raw, err := f.vfs.ReadFile(filePath)
 	if err != nil {
 		return "", err
 	}
@@ -292,7 +320,7 @@ func (f *NodeStore) contentPathForNodeWrite(entry *PageNode) (string, error) {
 	}
 	switch entry.Kind {
 	case NodeKindSection:
-		if err := os.MkdirAll(base, 0o755); err != nil {
+		if err := f.vfs.MkdirAll(base, 0o755); err != nil {
 			return "", fmt.Errorf("could not ensure folder: %w", err)
 		}
 		return filepath.Join(base, indexFilename), nil
@@ -316,7 +344,7 @@ func (f *NodeStore) resolveNode(entry *PageNode) (*ResolvedNode, error) {
 	}
 
 	// 1) File?
-	if _, err := os.Stat(basePath + ".md"); err == nil {
+	if _, err := f.vfs.Stat(basePath + ".md"); err == nil {
 		f.log.Debug("resolved as file node", "filePath", basePath+".md")
 		return &ResolvedNode{
 			Kind:       NodeKindPage,
@@ -326,9 +354,9 @@ func (f *NodeStore) resolveNode(entry *PageNode) (*ResolvedNode, error) {
 	}
 
 	// 2) Folder?
-	if info, err := os.Stat(basePath); err == nil && info.IsDir() {
+	if info, err := f.vfs.Stat(basePath); err == nil && info.IsDir() {
 		index := filepath.Join(basePath, indexFilename)
-		if _, err := os.Stat(index); err == nil {
+		if _, err := f.vfs.Stat(index); err == nil {
 			f.log.Debug("resolved as section node with content", "dirPath", basePath, "filePath", index)
 			return &ResolvedNode{
 				Kind:       NodeKindSection,

@@ -16,7 +16,7 @@ func pageKindPtr() *tree.NodeKind {
 func setupLinkEffect(t *testing.T) (*LinkIndexSideEffect, *links.LinkService, *tree.TreeService) {
 	t.Helper()
 	dataDir := t.TempDir()
-	ts := tree.NewTreeService(dataDir)
+	ts := tree.NewTreeService(dataDir, nil)
 	if err := ts.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}

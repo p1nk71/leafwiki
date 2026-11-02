@@ -12,7 +12,7 @@ func setupPropertiesEffectTest(t *testing.T) (*tree.TreeService, *properties.Pro
 	t.Helper()
 	dir := t.TempDir()
 
-	treeSvc := tree.NewTreeService(dir)
+	treeSvc := tree.NewTreeService(dir, nil)
 	if err := treeSvc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}

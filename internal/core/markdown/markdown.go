@@ -34,6 +34,20 @@ func LoadMarkdownFile(filePath string) (*MarkdownFile, error) {
 	return NewMarkdownFileFromRaw(filePath, string(raw))
 }
 
+// LoadMarkdownFileVia is LoadMarkdownFile with a caller-supplied reader —
+// the Postgres tree backend (ADR-0018) routes reads through its virtual
+// filesystem.
+func LoadMarkdownFileVia(filePath string, read func(string) ([]byte, error)) (*MarkdownFile, error) {
+	if !strings.EqualFold(filepath.Ext(filePath), ".md") {
+		return nil, errors.New("file is not a markdown file")
+	}
+	raw, err := read(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return NewMarkdownFileFromRaw(filePath, string(raw))
+}
+
 // NewMarkdownFileFromRaw builds a MarkdownFile from already loaded content.
 // Use this when the caller already has the raw markdown string and wants the
 // MarkdownFile behavior without a second filesystem read.
@@ -66,6 +80,14 @@ func NewMarkdownFile(filePath string, content string, fm Frontmatter) *MarkdownF
 // WriteToFile serializes frontmatter and body and writes them back atomically
 // to the MarkdownFile path.
 func (mf *MarkdownFile) WriteToFile() error {
+	return mf.WriteToFileVia(shared.WriteFileAtomic)
+}
+
+// WriteToFileVia is WriteToFile with a caller-supplied writer — the Postgres
+// tree backend (ADR-0018) routes writes through its virtual filesystem. The
+// caller's writer decides whether the file-mode stat applies; here a missing
+// stat just means the default 0o644.
+func (mf *MarkdownFile) WriteToFileVia(write func(string, []byte, os.FileMode) error) error {
 	fmContent, err := BuildMarkdownWithFrontmatter(mf.fm, mf.content)
 	if err != nil {
 		return err
@@ -76,7 +98,7 @@ func (mf *MarkdownFile) WriteToFile() error {
 		mode = st.Mode()
 	}
 
-	return shared.WriteFileAtomic(mf.path, []byte(fmContent), mode)
+	return write(mf.path, []byte(fmContent), mode)
 }
 
 // GetTitle resolves the effective title from leafwiki_title first, then from

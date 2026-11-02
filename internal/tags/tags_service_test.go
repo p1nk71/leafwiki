@@ -107,7 +107,7 @@ func setupTagsService(t *testing.T) (*TagsService, *tree.TreeService) {
 	t.Helper()
 
 	dir := t.TempDir()
-	ts := tree.NewTreeService(dir)
+	ts := tree.NewTreeService(dir, nil)
 	if err := ts.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}

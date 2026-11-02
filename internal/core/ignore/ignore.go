@@ -56,15 +56,23 @@ func countPatterns(lines []string) int {
 }
 
 type Cache struct {
-	root string
-	mu   sync.RWMutex
-	data map[string]*IgnoreFile
+	root     string
+	readFile func(string) ([]byte, error)
+	mu       sync.RWMutex
+	data     map[string]*IgnoreFile
 }
 
 func NewCache(rootDir string) *Cache {
+	return NewCacheWithReader(rootDir, os.ReadFile)
+}
+
+// NewCacheWithReader is NewCache with a custom file reader — the Postgres
+// tree backend (ADR-0018) routes .leafwikiignore reads through it.
+func NewCacheWithReader(rootDir string, readFile func(string) ([]byte, error)) *Cache {
 	return &Cache{
-		root: rootDir,
-		data: make(map[string]*IgnoreFile),
+		root:     rootDir,
+		readFile: readFile,
+		data:     make(map[string]*IgnoreFile),
 	}
 }
 
@@ -99,7 +107,7 @@ func (c *Cache) Get(dir string) *IgnoreFile {
 	var allLines []string
 	for i := len(ancestors) - 1; i >= 0; i-- {
 		ignorePath := filepath.Join(ancestors[i], IgnoreFilename)
-		if data, err := os.ReadFile(ignorePath); err == nil {
+		if data, err := c.readFile(ignorePath); err == nil {
 			allLines = append(allLines, strings.Split(string(data), "\n")...)
 		}
 	}

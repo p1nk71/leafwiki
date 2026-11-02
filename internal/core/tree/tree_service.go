@@ -1,6 +1,7 @@
 package tree
 
 import (
+	"github.com/jackc/pgx/v5/pgxpool"
 	"context"
 	"errors"
 	"fmt"
@@ -19,6 +20,7 @@ type TreeService struct {
 	storageDir   string
 	tree         *PageNode
 	store        *NodeStore
+	pg           *pgxpool.Pool
 	log          *slog.Logger
 	nodesByID    map[string]*PageNode
 	nodesByTitle map[string][]*PageNode
@@ -35,18 +37,28 @@ const (
 	errRollbackMovedNodeFailed = "rollback moved node: %w"
 )
 
-func NewTreeService(storageDir string) *TreeService {
-	store := NewNodeStore(storageDir)
+// NewTreeService opens the tree under storageDir — or on the Postgres
+// tree_files table when pg is set (ADR-0018).
+func NewTreeService(storageDir string, pg *pgxpool.Pool) *TreeService {
+	store := NewNodeStore(storageDir, pg)
 
 	return &TreeService{
 		storageDir:   storageDir,
 		tree:         nil,
 		store:        store,
+		pg:           pg,
 		log:          slog.Default().With("component", "TreeService"),
 		nodesByID:    make(map[string]*PageNode),
 		nodesByTitle: make(map[string][]*PageNode),
 		childSlugs:   make(map[string]map[string]*PageNode),
 	}
+}
+
+// ReadTreeFile reads a file through the tree's storage backend — used by
+// the ignore cache so .leafwikiignore works identically on Postgres
+// (ADR-0018).
+func (t *TreeService) ReadTreeFile(path string) ([]byte, error) {
+	return t.store.vfs.ReadFile(path)
 }
 
 // SetIgnoreCache sets the ignore cache for multi-level ignore resolution.
@@ -60,8 +72,20 @@ func (t *TreeService) LoadTree() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	if err := t.store.migratePG(context.Background()); err != nil {
+		return err
+	}
+
 	t.log.Info("Checking schema version...")
-	schema, err := loadSchema(t.storageDir)
+	var schema SchemaInfo
+	var err error
+	if t.pg != nil {
+		// Schema version lives in the Postgres meta table; a fresh install
+		// starts at the current version (no legacy layout to migrate).
+		schema, err = loadSchemaPG(context.Background(), t.pg)
+	} else {
+		schema, err = loadSchema(t.storageDir)
+	}
 	if err != nil {
 		t.log.Error("Error loading schema", "error", err)
 		return err
@@ -182,7 +206,12 @@ func (t *TreeService) ReconstructTreeFromFSContext(ctx context.Context) error {
 	oldTree := t.tree
 	t.tree = newTree
 	t.rebuildIndexesLocked()
-	if err := saveSchema(t.storageDir, CurrentSchemaVersion); err != nil {
+	if t.pg != nil {
+		err = saveSchemaPG(context.Background(), t.pg, CurrentSchemaVersion)
+	} else {
+		err = saveSchema(t.storageDir, CurrentSchemaVersion)
+	}
+	if err != nil {
 		t.log.Error("Error saving schema after reconstruction", "error", err)
 		t.tree = oldTree
 		t.rebuildIndexesLocked()

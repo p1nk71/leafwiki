@@ -44,7 +44,7 @@ func mustMkdir(t *testing.T, path string) {
 
 func TestNodeStore_LoadTree_MissingFile_ReturnsDefaultRoot(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	tree, err := store.LoadTree("missing.json")
 	if err != nil {
@@ -69,7 +69,7 @@ func TestNodeStore_LoadTree_MissingFile_ReturnsDefaultRoot(t *testing.T) {
 
 func TestNodeStore_SaveTree_ThenLoadTree_AssignsParents(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	tree := &PageNode{
 		ID:    "root",
@@ -114,7 +114,7 @@ func TestNodeStore_SaveTree_ThenLoadTree_AssignsParents(t *testing.T) {
 
 func TestNodeStore_SaveChildOrder_Root_WritesOrderFile(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{
 		ID:    "root",
@@ -137,7 +137,7 @@ func TestNodeStore_SaveChildOrder_Root_WritesOrderFile(t *testing.T) {
 
 func TestNodeStore_SaveChildOrder_Page_ReturnsErrorWithoutCreatingDirectory(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "page1", Slug: "docs", Title: "Docs", Kind: NodeKindPage, Parent: root}
@@ -157,7 +157,7 @@ func TestNodeStore_SaveChildOrder_Page_ReturnsErrorWithoutCreatingDirectory(t *t
 
 func TestNodeStore_CreateSection_CreatesFolderAndIndexWithFrontmatter(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	sec := &PageNode{
@@ -209,7 +209,7 @@ func TestNodeStore_CreateSection_CreatesFolderAndIndexWithFrontmatter(t *testing
 
 func TestNodeStore_CreateSection_KindGuards(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	rootPageWrong := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindPage}
 	sec := &PageNode{ID: "sec1", Slug: "docs", Title: "Docs", Kind: NodeKindSection}
@@ -227,7 +227,7 @@ func TestNodeStore_CreateSection_KindGuards(t *testing.T) {
 
 func TestNodeStore_CreatePage_CreatesMarkdownWithFrontmatter(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "hello", Title: "Hello World", Kind: NodeKindPage, Parent: root}
@@ -262,7 +262,7 @@ func TestNodeStore_CreatePage_CreatesMarkdownWithFrontmatter(t *testing.T) {
 
 func TestNodeStore_CreatePage_SetsLeafWikiTitleInitially(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "hello", Title: "Hello World", Kind: NodeKindPage, Parent: root}
@@ -289,7 +289,7 @@ func TestNodeStore_CreatePage_SetsLeafWikiTitleInitially(t *testing.T) {
 
 func TestNodeStore_CreatePage_RejectsCollision_FileOrDir(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 
@@ -310,7 +310,7 @@ func TestNodeStore_CreatePage_RejectsCollision_FileOrDir(t *testing.T) {
 
 func TestNodeStore_UpsertContent_Page_CreatesOrUpdates_PreservesMode(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -355,7 +355,7 @@ func TestNodeStore_UpsertContent_Page_CreatesOrUpdates_PreservesMode(t *testing.
 
 func TestNodeStore_UpsertContent_PreservesExistingCustomFrontmatter(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -405,7 +405,7 @@ leafwiki_title: Old Title
 // body text — matching the UI behaviour where the editor sends raw markdown.
 func TestNodeStore_UpsertContent_RawFrontmatter_TreatedAsPlainBody(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -452,7 +452,7 @@ func TestNodeStore_UpsertContent_RawFrontmatter_TreatedAsPlainBody(t *testing.T)
 // must be stored as plain body text, not extracted and merged into system frontmatter.
 func TestNodeStore_UpsertContent_TreatsLeadingFrontmatterAsPlainBody(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -500,7 +500,7 @@ func TestNodeStore_UpsertContent_TreatsLeadingFrontmatterAsPlainBody(t *testing.
 // system-managed frontmatter block.
 func TestNodeStore_UpsertContentPreservingFrontmatter_MergesExtrasIntoWrittenFrontmatter(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -553,7 +553,7 @@ func TestNodeStore_UpsertContentPreservingFrontmatter_MergesExtrasIntoWrittenFro
 
 func TestNodeStore_UpsertContentAndMetadata_UpdatesBodyAndTags(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -585,7 +585,7 @@ func TestNodeStore_UpsertContentAndMetadata_UpdatesBodyAndTags(t *testing.T) {
 
 func TestNodeStore_UpsertContentAndMetadata_UpdatesProperties(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -616,7 +616,7 @@ func TestNodeStore_UpsertContentAndMetadata_TitleAsCustomPropertyRoundtrips(t *t
 	// surfaced to the editor and included in incoming properties. It must be
 	// written back to disk.
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -646,7 +646,7 @@ func TestNodeStore_UpsertContentAndMetadata_TitleAsCustomPropertyRoundtrips(t *t
 func TestNodeStore_UpsertContentAndMetadata_UnsentFieldsAreDropped(t *testing.T) {
 	// Properties the user removed from the editor must not linger in the file.
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -672,7 +672,7 @@ func TestNodeStore_UpsertContentAndMetadata_UnsentFieldsAreDropped(t *testing.T)
 func TestNodeStore_UpsertContentAndMetadata_RemovedPropertyDoesNotPersist(t *testing.T) {
 	// A property the user deleted from the editor must not survive the save.
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -699,7 +699,7 @@ func TestNodeStore_UpsertContentAndMetadata_NilTagsPreservesExistingTags(t *test
 	// Regression: when tags == nil the existing on-disk tags must survive a
 	// property-only save, not be silently cleared.
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -727,7 +727,7 @@ func TestNodeStore_UpsertContentAndMetadata_NonStringFieldsPreserved(t *testing.
 	// Regression: bool, int, and non-tag list ExtraFields must survive an edit
 	// because the editor cannot represent them and never sends them back.
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "My Page", Kind: NodeKindPage, Parent: root}
@@ -762,7 +762,7 @@ func TestNodeStore_UpsertContentAndMetadata_NonStringFieldsPreserved(t *testing.
 
 func TestNodeStore_UpsertContent_Section_WritesIndexAndCreatesDir(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	sec := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -779,7 +779,7 @@ func TestNodeStore_UpsertContent_Section_WritesIndexAndCreatesDir(t *testing.T) 
 
 func TestNodeStore_MoveNode_Page_MovesFileStrict(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	secA := &PageNode{ID: "a", Slug: "a", Title: "A", Kind: NodeKindSection, Parent: root}
@@ -805,7 +805,7 @@ func TestNodeStore_MoveNode_Page_MovesFileStrict(t *testing.T) {
 
 func TestNodeStore_MoveNode_DriftWhenMissingSource(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	sec := &PageNode{ID: "s", Slug: "s", Title: "S", Kind: NodeKindSection, Parent: root}
@@ -823,7 +823,7 @@ func TestNodeStore_MoveNode_DriftWhenMissingSource(t *testing.T) {
 
 func TestNodeStore_DeletePage_RemovesFile_OrDriftIfMissing(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -847,7 +847,7 @@ func TestNodeStore_DeletePage_RemovesFile_OrDriftIfMissing(t *testing.T) {
 
 func TestNodeStore_DeleteSection_RemovesFolderRecursive_OrDriftIfMissing(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	sec := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -872,7 +872,7 @@ func TestNodeStore_DeleteSection_RemovesFolderRecursive_OrDriftIfMissing(t *test
 
 func TestNodeStore_RenameNode_PageAndSection(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 
@@ -904,7 +904,7 @@ func TestNodeStore_RenameNode_PageAndSection(t *testing.T) {
 
 func TestNodeStore_RenameNode_RejectsEmptySlugAndRoot(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "old", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -919,7 +919,7 @@ func TestNodeStore_RenameNode_RejectsEmptySlugAndRoot(t *testing.T) {
 
 func TestNodeStore_RenameNode_ReturnsNilWhenSlugUnchanged(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "same", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -936,7 +936,7 @@ func TestNodeStore_RenameNode_ReturnsNilWhenSlugUnchanged(t *testing.T) {
 
 func TestNodeStore_RenameNode_RejectsDestinationCollision(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "old", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -955,7 +955,7 @@ func TestNodeStore_RenameNode_RejectsDestinationCollision(t *testing.T) {
 
 func TestNodeStore_RenameNode_Page_DriftWhenSourceIsFolder(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "old", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -973,7 +973,7 @@ func TestNodeStore_RenameNode_Page_DriftWhenSourceIsFolder(t *testing.T) {
 
 func TestNodeStore_RenameNode_Section_DriftWhenSourceIsFile(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	sec := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -991,7 +991,7 @@ func TestNodeStore_RenameNode_Section_DriftWhenSourceIsFile(t *testing.T) {
 
 func TestNodeStore_RenameNode_RejectsUnknownKind(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{ID: "x1", Slug: "weird", Title: "Weird", Kind: NodeKind("mystery"), Parent: root}
@@ -1008,7 +1008,7 @@ func TestNodeStore_RenameNode_RejectsUnknownKind(t *testing.T) {
 
 func TestNodeStore_ReadPageRaw_Section_NoIndex_ReturnsEmptyNil(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	sec := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -1030,7 +1030,7 @@ func TestNodeStore_ReadPageRaw_Section_NoIndex_ReturnsEmptyNil(t *testing.T) {
 
 func TestNodeStore_ReadPageRaw_Page_Missing_IsDrift(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -1043,7 +1043,7 @@ func TestNodeStore_ReadPageRaw_Page_Missing_IsDrift(t *testing.T) {
 
 func TestNodeStore_ReadPageContent_StripsFrontmatterAndPreservesBody(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -1071,7 +1071,7 @@ Hello
 
 func TestNodeStore_ReadPageContent_InvalidFrontmatterReturnsRaw(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -1096,7 +1096,7 @@ Hello
 
 func TestNodeStore_SyncFrontmatterIfExists_Page_UpdatesOrAddsFM(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{
@@ -1172,7 +1172,7 @@ func TestNodeStore_SyncFrontmatterIfExists_Page_UpdatesOrAddsFM(t *testing.T) {
 
 func TestNodeStore_SyncFrontmatterIfExists_PreservesExistingCustomFrontmatter(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	page := &PageNode{ID: "p1", Slug: "p", Title: "Title A", Kind: NodeKindPage, Parent: root}
@@ -1219,7 +1219,7 @@ Hello` {
 
 func TestNodeStore_SyncFrontmatterIfExists_Section_NoIndex_NoSideEffects(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	sec := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -1236,7 +1236,7 @@ func TestNodeStore_SyncFrontmatterIfExists_Section_NoIndex_NoSideEffects(t *test
 
 func TestNodeStore_resolveNode_FileVsFolder(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 
@@ -1275,7 +1275,7 @@ func TestNodeStore_resolveNode_FileVsFolder(t *testing.T) {
 
 func TestNodeStore_ConvertNode_PageToSection_MovesToIndex(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{ID: "p1", Slug: "p", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -1298,7 +1298,7 @@ func TestNodeStore_ConvertNode_PageToSection_MovesToIndex(t *testing.T) {
 
 func TestNodeStore_ConvertNode_PageToSection_PreservesExistingMetadataAndBody(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{
@@ -1357,7 +1357,7 @@ leafwiki_title: Legacy Title
 
 func TestNodeStore_ConvertNode_SectionToPage_RejectsNonEmptyFolder(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -1379,7 +1379,7 @@ func TestNodeStore_ConvertNode_SectionToPage_RejectsNonEmptyFolder(t *testing.T)
 
 func TestNodeStore_ConvertNode_SectionToPage_WithIndex_MovesAndRemovesFolder(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -1403,7 +1403,7 @@ func TestNodeStore_ConvertNode_SectionToPage_WithIndex_MovesAndRemovesFolder(t *
 
 func TestNodeStore_ConvertNode_SectionToPage_NoIndex_CreatesEmptyPageWithFM(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -1432,7 +1432,7 @@ func TestNodeStore_ConvertNode_SectionToPage_NoIndex_CreatesEmptyPageWithFM(t *t
 
 func TestNodeStore_ConvertNode_SectionToPage_WithOrderMetadata_PreservesIndexContent(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -1465,7 +1465,7 @@ custom: keep
 
 func TestNodeStore_MoveNode_Section_MovesFolderStrict(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	secA := &PageNode{ID: "a", Slug: "a", Title: "A", Kind: NodeKindSection, Parent: root}
@@ -1491,7 +1491,7 @@ func TestNodeStore_MoveNode_Section_MovesFolderStrict(t *testing.T) {
 
 func TestNodeStore_MoveNode_Page_DriftWhenSourceIsFolder(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	sec := &PageNode{ID: "s", Slug: "s", Title: "S", Kind: NodeKindSection, Parent: root}
@@ -1511,7 +1511,7 @@ func TestNodeStore_MoveNode_Page_DriftWhenSourceIsFolder(t *testing.T) {
 
 func TestNodeStore_MoveNode_Section_DriftWhenSourceIsFile(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	sec := &PageNode{ID: "s", Slug: "s", Title: "S", Kind: NodeKindSection, Parent: root}
@@ -1531,7 +1531,7 @@ func TestNodeStore_MoveNode_Section_DriftWhenSourceIsFile(t *testing.T) {
 
 func TestNodeStore_MoveNode_RejectsDestinationCollision(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	secA := &PageNode{ID: "a", Slug: "a", Title: "A", Kind: NodeKindSection, Parent: root}
@@ -1555,7 +1555,7 @@ func TestNodeStore_MoveNode_RejectsDestinationCollision(t *testing.T) {
 
 func TestNodeStore_ConvertNode_PageToSection_CreatesIndexWhenPageMissing(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{ID: "p1", Slug: "p", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -1572,7 +1572,7 @@ func TestNodeStore_ConvertNode_PageToSection_CreatesIndexWhenPageMissing(t *test
 
 func TestNodeStore_ConvertNode_RejectsUnknownTarget(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{ID: "p1", Slug: "p", Title: "P", Kind: NodeKindPage, Parent: root}
@@ -1589,7 +1589,7 @@ func TestNodeStore_ConvertNode_RejectsUnknownTarget(t *testing.T) {
 
 func TestNodeStore_ConvertNode_SectionToPage_DriftWhenPathIsFile(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	root := &PageNode{ID: "root", Slug: "root", Title: "root", Kind: NodeKindSection}
 	entry := &PageNode{ID: "s1", Slug: "docs", Title: "Docs", Kind: NodeKindSection, Parent: root}
@@ -1619,7 +1619,7 @@ func mustRead(t *testing.T, path string) []byte {
 
 func TestNodeStore_CreatePage_RejectsIgnoredPath(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", ".leafwikiignore"), "drafts", 0o644)
 
@@ -1644,7 +1644,7 @@ func TestNodeStore_CreatePage_RejectsIgnoredPath(t *testing.T) {
 
 func TestNodeStore_CreateSection_RejectsIgnoredPath(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", ".leafwikiignore"), "archive", 0o644)
 
@@ -1669,7 +1669,7 @@ func TestNodeStore_CreateSection_RejectsIgnoredPath(t *testing.T) {
 
 func TestNodeStore_MoveNode_RejectsIgnoredDestination(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", ".leafwikiignore"), "archive/", 0o644)
 
@@ -1702,7 +1702,7 @@ func TestNodeStore_MoveNode_RejectsIgnoredDestination(t *testing.T) {
 
 func TestNodeStore_RenameNode_RejectsIgnoredSlug(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", ".leafwikiignore"), "*.tmp", 0o644)
 
@@ -1728,7 +1728,7 @@ func TestNodeStore_RenameNode_RejectsIgnoredSlug(t *testing.T) {
 
 func TestNodeStore_CreatePage_PassesThroughNonIgnoredPath(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", ".leafwikiignore"), "*.log", 0o644)
 

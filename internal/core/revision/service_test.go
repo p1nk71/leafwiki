@@ -17,7 +17,7 @@ import (
 func newRevisionTestService(t *testing.T) (*Service, *tree.TreeService, string) {
 	t.Helper()
 	storageDir := t.TempDir()
-	treeService := tree.NewTreeService(storageDir)
+	treeService := tree.NewTreeService(storageDir, nil)
 	if err := treeService.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -28,7 +28,7 @@ func newRevisionTestService(t *testing.T) (*Service, *tree.TreeService, string) 
 func newRevisionTestServiceWithWindow(t *testing.T, window time.Duration) (*Service, *tree.TreeService, string) {
 	t.Helper()
 	storageDir := t.TempDir()
-	treeService := tree.NewTreeService(storageDir)
+	treeService := tree.NewTreeService(storageDir, nil)
 	if err := treeService.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}

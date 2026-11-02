@@ -119,7 +119,7 @@ func setupTreeForLinksTest(t *testing.T) (*tree.TreeService, string, string) {
 	t.Helper()
 
 	storageDir := t.TempDir()
-	ts := tree.NewTreeService(storageDir)
+	ts := tree.NewTreeService(storageDir, nil)
 
 	if err := ts.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
@@ -237,7 +237,7 @@ func setupLinkService(t *testing.T) (*LinkService, *tree.TreeService, *LinksStor
 
 	dataDir := t.TempDir()
 
-	ts := tree.NewTreeService(dataDir)
+	ts := tree.NewTreeService(dataDir, nil)
 	if err := ts.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -1439,7 +1439,7 @@ func TestResolveWikiLinkTargets_NoMatch_ReturnsBroken(t *testing.T) {
 
 func TestResolveWikiLinkTargets_AmbiguousTitle_ReturnsBroken(t *testing.T) {
 	storageDir := t.TempDir()
-	ts := tree.NewTreeService(storageDir)
+	ts := tree.NewTreeService(storageDir, nil)
 	if err := ts.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}
@@ -1511,7 +1511,7 @@ func TestResolveWikiLinkTargets_BrokenSentinelFormat(t *testing.T) {
 
 func TestResolveWikiLinkTargets_SlashTitleFallback(t *testing.T) {
 	storageDir := t.TempDir()
-	ts := tree.NewTreeService(storageDir)
+	ts := tree.NewTreeService(storageDir, nil)
 	if err := ts.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}
@@ -1542,7 +1542,7 @@ func TestResolveWikiLinkTargets_SlashTitleFallback(t *testing.T) {
 // link to the wrong page with Broken staying false.
 func TestResolveWikiLinkTargets_SlashTitle_PrefersTitleOverCollidingRoutePath(t *testing.T) {
 	storageDir := t.TempDir()
-	ts := tree.NewTreeService(storageDir)
+	ts := tree.NewTreeService(storageDir, nil)
 	if err := ts.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}
@@ -1584,7 +1584,7 @@ func TestResolveWikiLinkTargets_SlashTitle_PrefersTitleOverCollidingRoutePath(t 
 
 func TestResolveWikiLinkTargets_AmbiguousSlashTitle_ReturnsBroken(t *testing.T) {
 	storageDir := t.TempDir()
-	ts := tree.NewTreeService(storageDir)
+	ts := tree.NewTreeService(storageDir, nil)
 	if err := ts.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}

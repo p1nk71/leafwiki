@@ -38,7 +38,7 @@ func setupExcerptPages(tb testing.TB, count int) (*SearchUseCase, []string) {
 			tb.Fatal(err)
 		}
 	}
-	svc := tree.NewTreeService(dir)
+	svc := tree.NewTreeService(dir, nil)
 	if err := svc.LoadTree(); err != nil {
 		tb.Fatal(err)
 	}

@@ -40,7 +40,7 @@ func newPropertiesRouter(t *testing.T, opts httpinternal.RouterOptions, pages ..
 	t.Helper()
 
 	dir := t.TempDir()
-	ts := tree.NewTreeService(dir)
+	ts := tree.NewTreeService(dir, nil)
 	if err := ts.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}

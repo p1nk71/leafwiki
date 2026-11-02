@@ -15,7 +15,7 @@ func setupSearchUseCaseForTags(t *testing.T) (*SearchUseCase, *coretags.TagsServ
 
 	dir := t.TempDir()
 
-	treeSvc := tree.NewTreeService(dir)
+	treeSvc := tree.NewTreeService(dir, nil)
 	if err := treeSvc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}

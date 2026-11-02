@@ -240,7 +240,7 @@ func TestPageView_FieldsAreAllowListed(t *testing.T) {
 
 func TestPageReader_Page_ReadsRealTreeWithoutFrontmatter(t *testing.T) {
 	dir := t.TempDir()
-	svc := tree.NewTreeService(dir)
+	svc := tree.NewTreeService(dir, nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}

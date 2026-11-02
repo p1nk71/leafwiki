@@ -50,7 +50,7 @@ func slugs(children []*PageNode) []string {
 
 func TestNodeStore_ReconstructTreeFromFS_EmptyStorage_ReturnsRoot(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	tree, err := store.ReconstructTreeFromFS()
 	if err != nil {
@@ -70,7 +70,7 @@ func TestNodeStore_ReconstructTreeFromFS_EmptyStorage_ReturnsRoot(t *testing.T) 
 
 func TestNodeStore_ReconstructTreeFromFS_BuildsSectionsAndPages_SkipsIndexMdAsPage(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	// FS layout:
 	// <tmp>/docs/index.md (section content)
@@ -158,7 +158,7 @@ leafwiki_title: Readme
 
 func TestNodeStore_ReconstructTreeFromFS_SectionWithoutIndex_UsesDirNameAsTitleAndMaterializesIndex(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustMkdir(t, filepath.Join(tmp, "root", "emptysec"))
 
@@ -200,7 +200,7 @@ func TestNodeStore_ReconstructTreeFromFS_SectionWithoutIndex_UsesDirNameAsTitleA
 
 func TestNodeStore_ReconstructTreeFromFS_PageWithoutFrontmatter_FallsBackToHeadlineTitle(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	// FS: <tmp>/plain.md (no fm)
 	mustWriteFile(t, filepath.Join(tmp, "root", "plain.md"), "# hello\n", 0o644)
@@ -227,7 +227,7 @@ func TestNodeStore_ReconstructTreeFromFS_PageWithoutFrontmatter_FallsBackToHeadl
 
 func TestNodeStore_ReconstructTreeFromFS_PositionsAreContiguous(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	// Create several files/dirs
 	mustWriteFile(t, filepath.Join(tmp, "root", "b.md"), "# b", 0o644)
@@ -254,7 +254,7 @@ func TestNodeStore_ReconstructTreeFromFS_PositionsAreContiguous(t *testing.T) {
 
 func TestNodeStore_ReconstructTreeFromFS_OrderFileOverridesDefaultOrder(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", "a.md"), "---\nleafwiki_id: id-a\n---\n# A", 0o644)
 	mustWriteFile(t, filepath.Join(tmp, "root", "b.md"), "---\nleafwiki_id: id-b\n---\n# B", 0o644)
@@ -288,7 +288,7 @@ func TestNodeStore_ReconstructTreeFromFS_OrderFileOverridesDefaultOrder(t *testi
 
 func TestNodeStore_ReconstructTreeFromFS_OrderFileIgnoresUnknownIDsAndKeepsRemainingStable(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", "a.md"), "---\nleafwiki_id: id-a\n---\n# A", 0o644)
 	mustWriteFile(t, filepath.Join(tmp, "root", "b.md"), "---\nleafwiki_id: id-b\n---\n# B", 0o644)
@@ -316,7 +316,7 @@ func TestNodeStore_ReconstructTreeFromFS_OrderFileIgnoresUnknownIDsAndKeepsRemai
 
 func TestNodeStore_ReconstructTreeFromFS_SkipsSectionSubtreeOnDuplicateLeafWikiID(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustMkdir(t, filepath.Join(tmp, "root", "first"))
 	mustWriteFile(t, filepath.Join(tmp, "root", "first", "index.md"), `---
@@ -351,7 +351,7 @@ leafwiki_title: Nested
 
 func TestNodeStore_ReconstructTreeFromFS_ContinuesPastDuplicateLeafWikiID(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", "a.md"), `---
 leafwiki_id: dup-id
@@ -386,7 +386,7 @@ func TestNodeStore_ReconstructTreeFromFS_ReturnsErrorOnCaseInsensitiveDuplicateS
 		t.Skip("skipping case-sensitivity test on case-insensitive filesystem")
 	}
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", "abc.md"), "# lower", 0o644)
 	mustWriteFile(t, filepath.Join(tmp, "root", "ABC.md"), "# upper", 0o644)
@@ -405,7 +405,7 @@ func TestNodeStore_ReconstructTreeFromFS_ReturnsErrorOnCaseInsensitiveDuplicateS
 
 func TestNodeStore_ReconstructTreeFromFS_ReturnsActionableErrorOnDirectoryFileSlugConflict(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustMkdir(t, filepath.Join(tmp, "root", "notes"))
 	mustWriteFile(t, filepath.Join(tmp, "root", "notes", "index.md"), "# Notes section", 0o644)
@@ -430,7 +430,7 @@ func TestNodeStore_ReconstructTreeFromFS_ReturnsActionableErrorOnDirectoryFileSl
 
 func TestNodeStore_ReconstructTreeFromFS_WritesIDsBackToFiles(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	// Create files without leafwiki_id in frontmatter
 	mustWriteFile(t, filepath.Join(tmp, "root", "no-id.md"), "# No ID", 0o644)
@@ -491,7 +491,7 @@ func TestNodeStore_ReconstructTreeFromFS_WritesIDsBackToFiles(t *testing.T) {
 
 func TestNodeStore_ReconstructTreeFromFS_SkipsInvalidSlugs(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	// Create files and directories with invalid slug names
 	mustWriteFile(t, filepath.Join(tmp, "root", "Valid Page.md"), "# Valid", 0o644)
@@ -519,7 +519,7 @@ func TestNodeStore_ReconstructTreeFromFS_SkipsInvalidSlugs(t *testing.T) {
 
 func TestNodeStore_ReconstructTreeFromFS_PreservesMixedCaseSlugNames(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", "ABCD-efg.md"), "# Mixed Case", 0o644)
 
@@ -532,7 +532,7 @@ func TestNodeStore_ReconstructTreeFromFS_PreservesMixedCaseSlugNames(t *testing.
 }
 func TestNodeStore_ReconstructTreeFromFS_ReadsMetadataFromFrontmatter(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", "page.md"), `---
 leafwiki_id: page-1
@@ -566,7 +566,7 @@ leafwiki_last_author_id: bob
 
 func TestNodeStore_ReconstructTreeFromFS_MissingMetadataFallsBackToMtimeAndSystem(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	pagePath := filepath.Join(tmp, "root", "page.md")
 	mustWriteFile(t, pagePath, `# Page One`, 0o644)
@@ -616,7 +616,7 @@ func TestNodeStore_ReconstructTreeFromFS_MissingMetadataFallsBackToMtimeAndSyste
 
 func TestNodeStore_ReconstructTreeFromFS_InvalidMetadataTimestampFallsBackToMtime(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	pagePath := filepath.Join(tmp, "root", "page.md")
 	mustWriteFile(t, pagePath, `---
@@ -653,7 +653,7 @@ leafwiki_last_author_id: bob
 
 func TestNodeStore_ReconstructTreeFromFS_IgnoresMatchingFile(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", "page1.md"), "# Page 1", 0o644)
 	mustWriteFile(t, filepath.Join(tmp, "root", "secret.md"), "# Secret", 0o644)
@@ -679,7 +679,7 @@ func TestNodeStore_ReconstructTreeFromFS_IgnoresMatchingFile(t *testing.T) {
 
 func TestNodeStore_ReconstructTreeFromFS_IgnoresDirectory(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustMkdir(t, filepath.Join(tmp, "root", "public"))
 	mustMkdir(t, filepath.Join(tmp, "root", "private"))
@@ -705,7 +705,7 @@ func TestNodeStore_ReconstructTreeFromFS_IgnoresDirectory(t *testing.T) {
 
 func TestNodeStore_ReconstructTreeFromFS_NegationUnignores(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", "a.md"), "# A", 0o644)
 	mustWriteFile(t, filepath.Join(tmp, "root", "b.md"), "# B", 0o644)
@@ -733,7 +733,7 @@ func TestNodeStore_ReconstructTreeFromFS_NegationUnignores(t *testing.T) {
 
 func TestNodeStore_ReconstructTreeFromFS_NestedIgnoredPath(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustMkdir(t, filepath.Join(tmp, "root", "docs"))
 	mustMkdir(t, filepath.Join(tmp, "root", "docs", "archive"))
@@ -769,7 +769,7 @@ func findChildBySlugExist(parent *PageNode, slug string) *PageNode {
 
 func TestReconstructTreeFromFS_MultiLevelIgnore(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", ".leafwikiignore"), "draft*", 0o644)
 	mustWriteFile(t, filepath.Join(tmp, "root", "docs", ".leafwikiignore"), "!draft-important.md", 0o644)
@@ -805,7 +805,7 @@ func TestReconstructTreeFromFS_MultiLevelIgnore(t *testing.T) {
 
 func TestCreatePage_MultiLevelIgnore(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	mustWriteFile(t, filepath.Join(tmp, "root", ".leafwikiignore"), "", 0o644)
 
@@ -842,7 +842,7 @@ func TestCreatePage_MultiLevelIgnore(t *testing.T) {
 
 func TestNodeStore_ReconstructTreeFromFS_PageWithUnquotedColonInFrontmatterTitle_IsNotDropped(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	page := `---
 leafwiki_id: page-adr
@@ -875,7 +875,7 @@ leafwiki_title: ADR-0001: Filesystem as Source of Truth
 // corruption would get permanently persisted back to the file on disk.
 func TestNodeStore_ReconstructTreeFromFS_ColonFixupDoesNotCorruptUnrelatedBlockScalar(t *testing.T) {
 	tmp := t.TempDir()
-	store := NewNodeStore(tmp)
+	store := NewNodeStore(tmp, nil)
 
 	filePath := filepath.Join(tmp, "root", "adr-0001.md")
 	page := `---

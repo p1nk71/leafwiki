@@ -28,7 +28,7 @@ func newTestDeps(t *testing.T) *testDeps {
 	t.Helper()
 	storageDir := t.TempDir()
 
-	treeService := tree.NewTreeService(storageDir)
+	treeService := tree.NewTreeService(storageDir, nil)
 	if err := treeService.LoadTree(); err != nil {
 		t.Fatalf("failed to load tree: %v", err)
 	}

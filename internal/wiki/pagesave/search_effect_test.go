@@ -12,7 +12,7 @@ func setupSearchTest(t *testing.T) (*tree.TreeService, *search.SQLiteIndex, *Sea
 	t.Helper()
 	tmp := t.TempDir()
 
-	treeSvc := tree.NewTreeService(tmp)
+	treeSvc := tree.NewTreeService(tmp, nil)
 	if err := treeSvc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}

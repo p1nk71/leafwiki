@@ -14,7 +14,7 @@ func BenchmarkTreeSortPages(b *testing.B) {
 			if err := os.MkdirAll(filepath.Join(dir, "root"), 0755); err != nil {
 				b.Fatal(err)
 			}
-			svc := NewTreeService(dir)
+			svc := NewTreeService(dir, nil)
 			if err := svc.LoadTree(); err != nil {
 				b.Fatal(err)
 			}

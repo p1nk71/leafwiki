@@ -49,7 +49,7 @@ func TestTreeMigration_LoadTree_MigratesToV2_AddsFrontmatterAndPreservesBody(t *
 	tmpDir := t.TempDir()
 	writeSchema(t, tmpDir, 1)
 
-	svc := tree.NewTreeService(tmpDir)
+	svc := tree.NewTreeService(tmpDir, nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -67,7 +67,7 @@ func TestTreeMigration_LoadTree_MigratesToV2_AddsFrontmatterAndPreservesBody(t *
 	}
 	writeSchema(t, tmpDir, 1)
 
-	loaded := tree.NewTreeService(tmpDir)
+	loaded := tree.NewTreeService(tmpDir, nil)
 	if err := loaded.LoadTree(); err != nil {
 		t.Fatalf("LoadTree (migrating) failed: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestTreeMigration_LoadTree_MigratesToV2_PreservesExistingCustomFrontmatter(
 	tmpDir := t.TempDir()
 	writeSchema(t, tmpDir, 1)
 
-	svc := tree.NewTreeService(tmpDir)
+	svc := tree.NewTreeService(tmpDir, nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -128,7 +128,7 @@ Hello World
 	}
 	writeSchema(t, tmpDir, 1)
 
-	loaded := tree.NewTreeService(tmpDir)
+	loaded := tree.NewTreeService(tmpDir, nil)
 	if err := loaded.LoadTree(); err != nil {
 		t.Fatalf("LoadTree (migrating) failed: %v", err)
 	}
@@ -173,7 +173,7 @@ func TestTreeMigration_LoadTree_MigratesToV3_BackfillsMetadataFrontmatter(t *tes
 	tmpDir := t.TempDir()
 	writeSchema(t, tmpDir, 2)
 
-	svc := tree.NewTreeService(tmpDir)
+	svc := tree.NewTreeService(tmpDir, nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestTreeMigration_LoadTree_MigratesToV3_BackfillsMetadataFrontmatter(t *tes
 	}
 	writeSchema(t, tmpDir, 2)
 
-	loaded := tree.NewTreeService(tmpDir)
+	loaded := tree.NewTreeService(tmpDir, nil)
 	if err := loaded.LoadTree(); err != nil {
 		t.Fatalf("LoadTree (migrating) failed: %v", err)
 	}
@@ -240,7 +240,7 @@ func TestTreeMigration_LoadTree_MigratesToV5_BackfillsChildOrderFiles(t *testing
 	tmpDir := t.TempDir()
 	writeSchema(t, tmpDir, tree.CurrentSchemaVersion)
 
-	svc := tree.NewTreeService(tmpDir)
+	svc := tree.NewTreeService(tmpDir, nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestTreeMigration_LoadTree_MigratesToV5_BackfillsChildOrderFiles(t *testing
 	persistLegacyTreeSnapshot(t, tmpDir, svc.GetTree())
 	writeSchema(t, tmpDir, 4)
 
-	loaded := tree.NewTreeService(tmpDir)
+	loaded := tree.NewTreeService(tmpDir, nil)
 	if err := loaded.LoadTree(); err != nil {
 		t.Fatalf("LoadTree (migrating) failed: %v", err)
 	}
@@ -318,7 +318,7 @@ func TestTreeMigration_LoadTree_MigratesToV4_MaterializesMissingSectionIndex(t *
 	tmpDir := t.TempDir()
 	writeSchema(t, tmpDir, 3)
 
-	svc := tree.NewTreeService(tmpDir)
+	svc := tree.NewTreeService(tmpDir, nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -347,7 +347,7 @@ func TestTreeMigration_LoadTree_MigratesToV4_MaterializesMissingSectionIndex(t *
 	}
 	writeSchema(t, tmpDir, 3)
 
-	loaded := tree.NewTreeService(tmpDir)
+	loaded := tree.NewTreeService(tmpDir, nil)
 	if err := loaded.LoadTree(); err != nil {
 		t.Fatalf("LoadTree (migrating) failed: %v", err)
 	}
@@ -389,7 +389,7 @@ func TestTreeMigration_LoadTree_MigratesToV5_PageNodeWithChildrenPreservesChildO
 	tmpDir := t.TempDir()
 	writeSchema(t, tmpDir, tree.CurrentSchemaVersion)
 
-	svc := tree.NewTreeService(tmpDir)
+	svc := tree.NewTreeService(tmpDir, nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -428,7 +428,7 @@ func TestTreeMigration_LoadTree_MigratesToV5_PageNodeWithChildrenPreservesChildO
 	persistLegacyTreeSnapshot(t, tmpDir, root)
 	writeSchema(t, tmpDir, 4)
 
-	loaded := tree.NewTreeService(tmpDir)
+	loaded := tree.NewTreeService(tmpDir, nil)
 	if err := loaded.LoadTree(); err != nil {
 		t.Fatalf("migration failed for page node with children (issue #932): %v", err)
 	}
@@ -462,7 +462,7 @@ func TestTreeMigration_LoadTree_MigratesToV5_ReturnsErrorWhenOrderFileCannotBeWr
 	tmpDir := t.TempDir()
 	writeSchema(t, tmpDir, tree.CurrentSchemaVersion)
 
-	svc := tree.NewTreeService(tmpDir)
+	svc := tree.NewTreeService(tmpDir, nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -484,7 +484,7 @@ func TestTreeMigration_LoadTree_MigratesToV5_ReturnsErrorWhenOrderFileCannotBeWr
 	}
 	writeSchema(t, tmpDir, 4)
 
-	loaded := tree.NewTreeService(tmpDir)
+	loaded := tree.NewTreeService(tmpDir, nil)
 	err = loaded.LoadTree()
 	if err == nil {
 		t.Fatalf("expected migration error when order file cannot be written")
@@ -505,7 +505,7 @@ func TestTreeMigration_LoadTree_MigratesToV4_ReturnsErrorWhenSectionIndexCannotB
 	tmpDir := t.TempDir()
 	writeSchema(t, tmpDir, 3)
 
-	svc := tree.NewTreeService(tmpDir)
+	svc := tree.NewTreeService(tmpDir, nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -541,7 +541,7 @@ func TestTreeMigration_LoadTree_MigratesToV4_ReturnsErrorWhenSectionIndexCannotB
 	}()
 	writeSchema(t, tmpDir, 3)
 
-	loaded := tree.NewTreeService(tmpDir)
+	loaded := tree.NewTreeService(tmpDir, nil)
 	err = loaded.LoadTree()
 	if err == nil {
 		t.Fatalf("expected migration error when section index cannot be written")

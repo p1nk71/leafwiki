@@ -224,7 +224,7 @@ func TestReadPageMetadata_PageFile_ReturnsNonNilMetadata(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storageDir := t.TempDir()
-			ts := tree.NewTreeService(storageDir)
+			ts := tree.NewTreeService(storageDir, nil)
 			if err := ts.LoadTree(); err != nil {
 				t.Fatalf("LoadTree failed: %v", err)
 			}

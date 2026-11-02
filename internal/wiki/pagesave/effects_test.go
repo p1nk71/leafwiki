@@ -16,7 +16,7 @@ import (
 )
 
 func TestNewLinkIndexSideEffect_DefaultsLogger(t *testing.T) {
-	treeService := tree.NewTreeService(t.TempDir())
+	treeService := tree.NewTreeService(t.TempDir(), nil)
 	store, err := links.NewLinksStore(t.TempDir())
 	if err != nil {
 		t.Fatalf("NewLinksStore failed: %v", err)
@@ -32,7 +32,7 @@ func TestNewLinkIndexSideEffect_DefaultsLogger(t *testing.T) {
 }
 
 func TestNewRevisionSideEffect_DefaultsLogger(t *testing.T) {
-	treeService := tree.NewTreeService(t.TempDir())
+	treeService := tree.NewTreeService(t.TempDir(), nil)
 	effect := NewRevisionSideEffect(revision.NewService(t.TempDir(), treeService, nil, revision.ServiceOptions{}), nil, nil)
 	if effect.log == nil {
 		t.Fatal("expected default logger to be set")
@@ -43,7 +43,7 @@ func TestNewRevisionSideEffect_DefaultsLogger(t *testing.T) {
 }
 
 func TestNewSearchIndexSideEffect_DefaultsLogger(t *testing.T) {
-	treeService := tree.NewTreeService(t.TempDir())
+	treeService := tree.NewTreeService(t.TempDir(), nil)
 	index, err := search.NewSQLiteIndex(t.TempDir())
 	if err != nil {
 		t.Fatalf("NewSQLiteIndex failed: %v", err)

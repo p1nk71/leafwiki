@@ -1,7 +1,12 @@
 package tree
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 	"os"
 	"path/filepath"
@@ -48,4 +53,34 @@ func saveSchema(storageDir string, version int) error {
 
 	log.Printf("Saving schema version %d to %s", version, path)
 	return os.WriteFile(path, data, 0o644)
+}
+
+// loadSchemaPG reads the schema version from the Postgres meta table
+// (ADR-0018). A missing row means a fresh Postgres install — there is no
+// legacy file layout to migrate, so the current version applies.
+func loadSchemaPG(ctx context.Context, pool *pgxpool.Pool) (SchemaInfo, error) {
+	var v string
+	err := pool.QueryRow(ctx, `SELECT value FROM meta WHERE key = 'schema_version'`).Scan(&v)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return SchemaInfo{Version: CurrentSchemaVersion}, nil
+		}
+		return SchemaInfo{}, err
+	}
+	var s SchemaInfo
+	if err := json.Unmarshal([]byte(v), &s); err != nil {
+		return SchemaInfo{}, err
+	}
+	return s, nil
+}
+
+func saveSchemaPG(ctx context.Context, pool *pgxpool.Pool, version int) error {
+	data, err := json.Marshal(SchemaInfo{Version: version})
+	if err != nil {
+		return err
+	}
+	_, err = pool.Exec(ctx,
+		`INSERT INTO meta (key, value) VALUES ('schema_version', $1)
+		 ON CONFLICT (key) DO UPDATE SET value = $1`, string(data))
+	return err
 }

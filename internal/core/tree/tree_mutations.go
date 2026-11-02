@@ -200,7 +200,7 @@ func (t *TreeService) rollbackCreatedNodeLocked(parent *PageNode, entry *PageNod
 		if err != nil {
 			return err
 		}
-		if err := os.Remove(filepath.Join(orderPath, orderFilename)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		if err := t.store.vfs.Remove(filepath.Join(orderPath, orderFilename)); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("remove parent order file before fold-back: %w", err)
 		}
 		if err := t.store.ConvertNode(parent, NodeKindPage); err != nil {
@@ -768,7 +768,7 @@ func (t *TreeService) rollbackMovedNodeLocked(node *PageNode, oldParent *PageNod
 		if dirErr != nil {
 			rollbackErr = errors.Join(rollbackErr, fmt.Errorf("resolve converted parent dir: %w", dirErr))
 		} else {
-			if removeErr := os.RemoveAll(filepath.Join(newParentDir, orderFilename)); removeErr != nil {
+			if removeErr := t.store.vfs.RemoveAll(filepath.Join(newParentDir, orderFilename)); removeErr != nil {
 				rollbackErr = errors.Join(rollbackErr, fmt.Errorf("remove child order before parent rollback: %w", removeErr))
 			}
 		}

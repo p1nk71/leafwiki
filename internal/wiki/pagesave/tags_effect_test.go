@@ -12,7 +12,7 @@ func setupTagsEffectTest(t *testing.T) (*tree.TreeService, *tags.TagsService, *T
 	t.Helper()
 	dir := t.TempDir()
 
-	treeSvc := tree.NewTreeService(dir)
+	treeSvc := tree.NewTreeService(dir, nil)
 	if err := treeSvc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree: %v", err)
 	}

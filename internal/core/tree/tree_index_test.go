@@ -112,7 +112,7 @@ func TestTreeService_IsInSubtree_UnknownIDsAreNotFound(t *testing.T) {
 }
 
 func TestTreeService_IsInSubtree_TreeNotLoaded(t *testing.T) {
-	svc := NewTreeService(t.TempDir())
+	svc := NewTreeService(t.TempDir(), nil)
 
 	if _, err := svc.IsInSubtree("a", "b"); !errors.Is(err, ErrTreeNotLoaded) {
 		t.Fatalf("err = %v, want ErrTreeNotLoaded", err)

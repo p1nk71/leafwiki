@@ -12,7 +12,7 @@ import (
 // TreeService: moves in and out, deletion of pages and of the scope root,
 // the tree root ID, and a tree that is not loaded.
 func TestPageReader_Page_RealTreeLifecycle(t *testing.T) {
-	svc := tree.NewTreeService(t.TempDir())
+	svc := tree.NewTreeService(t.TempDir(), nil)
 	if err := svc.LoadTree(); err != nil {
 		t.Fatalf("LoadTree failed: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestPageReader_Page_RealTreeLifecycle(t *testing.T) {
 }
 
 func TestPageReader_Page_RealTreeNotLoaded(t *testing.T) {
-	r := NewPageReader(tree.NewTreeService(t.TempDir()))
+	r := NewPageReader(tree.NewTreeService(t.TempDir(), nil))
 	for _, scope := range []ReadScope{{RootID: "a"}, {RootID: "a", IncludeDescendants: true}} {
 		_, err := r.Page(context.Background(), scope, "a")
 		if !errors.Is(err, tree.ErrTreeNotLoaded) {
