@@ -9,11 +9,12 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/shared/pgdb"
+	"github.com/perber/wiki/internal/core/shared/vfs"
 )
 
 // Needs a real PostgreSQL: set LEAFWIKI_TEST_DATABASE_URL,
 // e.g. postgres://postgres:postgres@localhost:5432/postgres
-func testPGFS(t *testing.T) (*pgFS, *pgxpool.Pool) {
+func testPGFS(t *testing.T) (*vfs.PG, *pgxpool.Pool, string) {
 	t.Helper()
 	dsn := os.Getenv("LEAFWIKI_TEST_DATABASE_URL")
 	if dsn == "" {
@@ -29,17 +30,16 @@ func testPGFS(t *testing.T) (*pgFS, *pgxpool.Pool) {
 		t.Fatalf("migrate: %v", err)
 	}
 	root := t.TempDir() + "/root"
-	vfs := newPgFS(pool, root)
+	vfs := vfs.NewPG(pool, root, "tree_files")
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(),
 			`DELETE FROM tree_files WHERE path LIKE 'pgfs_test/%' OR path = 'pgfs_test'`)
 	})
-	return vfs, pool
+	return vfs, pool, root
 }
 
 func TestPGFS_RoundTrip(t *testing.T) {
-	vfs, _ := testPGFS(t)
-	root := vfs.root
+	vfs, _, root := testPGFS(t)
 
 	write := func(rel, content string) {
 		t.Helper()
@@ -109,7 +109,7 @@ func TestPGFS_RoundTrip(t *testing.T) {
 }
 
 func TestPGFS_OutsideRootPassesThrough(t *testing.T) {
-	vfs, _ := testPGFS(t)
+	vfs, _, _ := testPGFS(t)
 	outside := t.TempDir() + "/schema.json"
 	if err := vfs.WriteFileAtomic(outside, []byte("{}"), 0o644); err != nil {
 		t.Fatalf("write outside: %v", err)

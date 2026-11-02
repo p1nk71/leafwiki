@@ -32,9 +32,9 @@ func newMultipartFile(data []byte) multipart.File {
 func newTestAvatarService(t *testing.T) (*AvatarService, string) {
 	t.Helper()
 	dir := t.TempDir()
-	svc, err := NewAvatarService(dir)
+	svc, err := NewAvatarService(dir, nil)
 	if err != nil {
-		t.Fatalf("NewAvatarService() error: %v", err)
+		t.Fatalf("NewAvatarService(), nil error: %v", err)
 	}
 	return svc, dir
 }

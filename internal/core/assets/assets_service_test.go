@@ -27,7 +27,7 @@ func TestSaveAndListAsset(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(pagePath, "index.md"), []byte("# Lonely Page"), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
-	service := NewAssetService(tmp, tree.NewSlugService())
+	service := NewAssetService(tmp, tree.NewSlugService(), nil)
 
 	file, name, err := test_utils.CreateMultipartFile("my-image.png", []byte("hello image"))
 	if err != nil {
@@ -70,7 +70,7 @@ func TestDeletePageAndEnsureAllAssetsAreDeleted(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(pagePath, "index.md"), []byte("# Lonely Page"), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
-	service := NewAssetService(tmp, tree.NewSlugService())
+	service := NewAssetService(tmp, tree.NewSlugService(), nil)
 
 	file, name, err := test_utils.CreateMultipartFile("my-image.png", []byte("hello image"))
 	if err != nil {
@@ -106,7 +106,7 @@ func TestDeletePageAndEnsureAllAssetsAreDeleted(t *testing.T) {
 func TestSlugCollision(t *testing.T) {
 	tmp := t.TempDir()
 	page := &tree.PageNode{Slug: "collision-page"}
-	service := NewAssetService(tmp, tree.NewSlugService())
+	service := NewAssetService(tmp, tree.NewSlugService(), nil)
 
 	for i := 0; i < 3; i++ {
 		file, name, err := test_utils.CreateMultipartFile("logo.png", []byte("image"))
@@ -146,7 +146,7 @@ func TestAssetRename(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(pagePath, "index.md"), []byte("# Rename Page"), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
-	service := NewAssetService(tmp, tree.NewSlugService())
+	service := NewAssetService(tmp, tree.NewSlugService(), nil)
 
 	file, name, err := test_utils.CreateMultipartFile("old-name.png", []byte("old image"))
 	if err != nil {
@@ -187,7 +187,7 @@ func TestAssetRename(t *testing.T) {
 func TestDeleteMissingAssetReturnsNotFound(t *testing.T) {
 	tmp := t.TempDir()
 	page := &tree.PageNode{Slug: "delete-page", ID: "delete-page-id"}
-	service := NewAssetService(tmp, tree.NewSlugService())
+	service := NewAssetService(tmp, tree.NewSlugService(), nil)
 
 	pageAssetDir := filepath.Join(service.GetAssetsDir(), page.ID)
 	if err := os.MkdirAll(pageAssetDir, 0755); err != nil {
@@ -245,7 +245,7 @@ func TestValidateFilename(t *testing.T) {
 func TestDeleteAsset_PathTraversal(t *testing.T) {
 	tmp := t.TempDir()
 	page := &tree.PageNode{Slug: "test-page", ID: "traversal-delete"}
-	service := NewAssetService(tmp, tree.NewSlugService())
+	service := NewAssetService(tmp, tree.NewSlugService(), nil)
 
 	pageAssetDir := filepath.Join(service.GetAssetsDir(), page.ID)
 	if err := os.MkdirAll(pageAssetDir, 0755); err != nil {
@@ -281,7 +281,7 @@ func TestDeleteAsset_PathTraversal(t *testing.T) {
 func TestRenameAsset_OldFilenamePathTraversal(t *testing.T) {
 	tmp := t.TempDir()
 	page := &tree.PageNode{Slug: "test-page", ID: "traversal-rename"}
-	service := NewAssetService(tmp, tree.NewSlugService())
+	service := NewAssetService(tmp, tree.NewSlugService(), nil)
 
 	pageAssetDir := filepath.Join(service.GetAssetsDir(), page.ID)
 	if err := os.MkdirAll(pageAssetDir, 0755); err != nil {
@@ -315,7 +315,7 @@ func TestRenameAsset_OldFilenamePathTraversal(t *testing.T) {
 }
 
 func TestAssetPublicPath_UsesForwardSlashes(t *testing.T) {
-	service := NewAssetService(t.TempDir(), tree.NewSlugService())
+	service := NewAssetService(t.TempDir(), tree.NewSlugService(), nil)
 	page := &tree.PageNode{ID: "a7b3"}
 
 	if got, want := service.buildPublicPath(page, "my-image.png"), "/assets/a7b3/my-image.png"; got != want {
@@ -326,7 +326,7 @@ func TestAssetPublicPath_UsesForwardSlashes(t *testing.T) {
 func TestSaveAssetForPage_TooLarge_DoesNotLeavePartialFile(t *testing.T) {
 	tmp := t.TempDir()
 	page := &tree.PageNode{Slug: "limit-page", ID: "limit-page-id"}
-	service := NewAssetService(tmp, tree.NewSlugService())
+	service := NewAssetService(tmp, tree.NewSlugService(), nil)
 
 	file, name, err := test_utils.CreateMultipartFile("too-large.bin", []byte(strings.Repeat("a", 32)))
 	if err != nil {

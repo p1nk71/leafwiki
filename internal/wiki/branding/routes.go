@@ -3,6 +3,7 @@ package branding
 import (
 	"errors"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -197,6 +198,21 @@ func (r *Routes) handleServeBrandingAsset(c *gin.Context) {
 	}
 
 	disableClientCache(c)
+	r.serveBrandingAsset(c, c.Param("filename"), cleanPath)
+}
+
+// serveBrandingAsset emits a stored branding file — bytes from Postgres
+// (ADR-0018) or a disk file in file mode.
+func (r *Routes) serveBrandingAsset(c *gin.Context, filename, cleanPath string) {
+	if r.brandingService.IsPG() {
+		data, err := r.brandingService.ReadAsset(filename)
+		if err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		c.Data(http.StatusOK, mime.TypeByExtension(filepath.Ext(filename)), data)
+		return
+	}
 	c.File(cleanPath)
 }
 
@@ -212,7 +228,7 @@ func (r *Routes) handleServeCurrentFavicon(c *gin.Context) {
 		cleanPath, status := r.resolveBrandingAssetPath(cfg.FaviconFile, cfg)
 		if status == http.StatusOK {
 			disableClientCache(c)
-			c.File(cleanPath)
+			r.serveBrandingAsset(c, cfg.FaviconFile, cleanPath)
 			return
 		}
 		if status == http.StatusInternalServerError {
@@ -254,6 +270,12 @@ func (r *Routes) resolveBrandingAssetPath(filename string, cfg *corebanding.Bran
 		return "", http.StatusForbidden
 	}
 
+	if r.brandingService.IsPG() {
+		if _, err := r.brandingService.ReadAsset(filename); err != nil {
+			return "", http.StatusNotFound
+		}
+		return cleanPath, http.StatusOK
+	}
 	if _, err := os.Stat(cleanPath); os.IsNotExist(err) {
 		return "", http.StatusNotFound
 	} else if err != nil {

@@ -2,6 +2,7 @@ package tree
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -12,11 +13,12 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/shared/pgdb"
+	"github.com/perber/wiki/internal/core/shared/vfs"
 	"github.com/perber/wiki/internal/core/ignore"
 	"github.com/perber/wiki/internal/core/markdown"
 )
 
-func fileExists(vfs nodeFS, p string) bool {
+func fileExists(vfs vfs.FS, p string) bool {
 	_, err := vfs.Stat(p)
 	return err == nil
 }
@@ -28,13 +30,16 @@ type ResolvedNode struct {
 	HasContent bool
 }
 
+//go:embed migrations
+var treeMigrations embed.FS
+
 type NodeStore struct {
 	storageDir  string
 	log         *slog.Logger
 	slugger     *SlugService
 	ignoreCache *ignore.Cache
 	pg         *pgxpool.Pool
-	vfs        nodeFS
+	vfs        vfs.FS
 }
 
 // SetIgnoreCache sets the ignore cache to use for multi-level ignore resolution.
@@ -71,11 +76,11 @@ func NewNodeStore(storageDir string, pg *pgxpool.Pool) *NodeStore {
 		storageDir: storageDir,
 		log:        slog.Default().With("component", "NodeStore"),
 		slugger:    NewSlugService(),
-		vfs:        osFS{},
+		vfs:        vfs.OS{},
 		pg:         pg,
 	}
 	if pg != nil {
-		n.vfs = newPgFS(pg, filepath.Join(storageDir, "root"))
+		n.vfs = vfs.NewPG(pg, filepath.Join(storageDir, "root"), "tree_files")
 	}
 	return n
 }

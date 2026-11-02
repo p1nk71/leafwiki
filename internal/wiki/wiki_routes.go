@@ -126,7 +126,8 @@ func (w *Wiki) buildAssetsRoutes() *wikiassets.Routes {
 		Rename:      wikiassets.NewRenameAssetUseCase(w.tree, w.asset, w.revision, w.log),
 		Delete:      wikiassets.NewDeleteAssetUseCase(w.tree, w.asset, w.revision, w.log),
 		AuthService: w.auth,
-		AssetsDir:   w.asset.GetAssetsDir(),
+		AssetsDir:    w.asset.GetAssetsDir(),
+		AssetService: w.asset,
 		Log:         w.log,
 	})
 }

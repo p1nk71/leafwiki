@@ -2,11 +2,15 @@ package assets
 
 import (
 	"log/slog"
+	"mime"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	coreauth "github.com/perber/wiki/internal/core/auth"
 	httpinternal "github.com/perber/wiki/internal/http"
+	coreassets "github.com/perber/wiki/internal/core/assets"
 	authmw "github.com/perber/wiki/internal/http/middleware/auth"
 )
 
@@ -19,7 +23,8 @@ type Routes struct {
 	rename      *RenameAssetUseCase
 	delete      *DeleteAssetUseCase
 	authService *coreauth.AuthService
-	assetsDir   string
+	assetsDir    string
+	assetService *coreassets.AssetService
 	log         *slog.Logger
 }
 
@@ -30,8 +35,9 @@ type RoutesConfig struct {
 	Rename      *RenameAssetUseCase
 	Delete      *DeleteAssetUseCase
 	AuthService *coreauth.AuthService
-	AssetsDir   string
-	Log         *slog.Logger
+	AssetsDir    string
+	AssetService *coreassets.AssetService
+	Log          *slog.Logger
 }
 
 // NewRoutes constructs the assets RouteRegistrar.
@@ -42,8 +48,9 @@ func NewRoutes(cfg RoutesConfig) *Routes {
 		rename:      cfg.Rename,
 		delete:      cfg.Delete,
 		authService: cfg.AuthService,
-		assetsDir:   cfg.AssetsDir,
-		log:         cfg.Log,
+		assetsDir:    cfg.AssetsDir,
+		assetService: cfg.AssetService,
+		log:          cfg.Log,
 	}
 }
 
@@ -55,14 +62,17 @@ func (r *Routes) RegisterRoutes(ctx httpinternal.RouterContext) {
 	// session), but on their own path and without CSRF (GET-only static FS),
 	// so this one group is wired inline rather than via APIReadGroup.
 	if r.assetsDir != "" {
-		assetsFS := gin.Dir(r.assetsDir, false)
 		assetsGroup := ctx.Base.Group("/assets")
 		assetsGroup.Use(
 			assetServeHeaders(),
 			authmw.InjectPublicEditor(opts.AuthDisabled),
 			authmw.RequireAuthOrPublicRead(r.authService, ctx.AuthCookies, opts.AuthDisabled, opts.PublicAccess),
 		)
-		assetsGroup.StaticFS("/", assetsFS)
+		if r.assetService.IsPG() {
+			assetsGroup.GET("/*path", r.handleServeAsset)
+		} else {
+			assetsGroup.StaticFS("/", gin.Dir(r.assetsDir, false))
+		}
 	}
 
 	// Listing a page's assets is a read: registered once, gated per request.
@@ -74,6 +84,18 @@ func (r *Routes) RegisterRoutes(ctx httpinternal.RouterContext) {
 	authGroup.POST("/pages/:id/assets", authmw.RequireEditorOrAdmin(), r.handleUpload(opts.MaxAssetUploadSizeBytes))
 	authGroup.PUT("/pages/:id/assets/rename", authmw.RequireEditorOrAdmin(), r.handleRename)
 	authGroup.DELETE("/pages/:id/assets/:name", authmw.RequireEditorOrAdmin(), r.handleDelete)
+}
+
+// handleServeAsset serves an asset out of the Postgres asset_files table
+// (ADR-0018) — the StaticFS branch serves the same URLs from disk.
+func (r *Routes) handleServeAsset(c *gin.Context) {
+	rel := strings.TrimPrefix(c.Param("path"), "/")
+	data, err := r.assetService.ReadAssetData(filepath.Join(r.assetsDir, rel))
+	if err != nil {
+		c.Status(http.StatusNotFound)
+		return
+	}
+	c.Data(http.StatusOK, mime.TypeByExtension(filepath.Ext(rel)), data)
 }
 
 // ─── Handlers ───────────────────────────────────────────────────────────────

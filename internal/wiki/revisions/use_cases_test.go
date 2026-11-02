@@ -34,7 +34,7 @@ func newTestDeps(t *testing.T) *testDeps {
 	}
 
 	slugService := tree.NewSlugService()
-	assetService := assets.NewAssetService(storageDir, slugService)
+	assetService := assets.NewAssetService(storageDir, slugService, nil)
 
 	linksStore, err := links.NewLinksStore(storageDir)
 	if err != nil {

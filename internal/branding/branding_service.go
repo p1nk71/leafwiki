@@ -1,6 +1,11 @@
 package branding
 
 import (
+	"bytes"
+	"context"
+	"embed"
+	"io"
+	"io/fs"
 	"fmt"
 	"mime/multipart"
 	"os"
@@ -12,6 +17,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/shared"
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
+	"github.com/perber/wiki/internal/core/shared/vfs"
 )
 
 // BrandingService provides branding operations
@@ -22,25 +29,30 @@ const (
 
 type BrandingService struct {
 	store *BrandingStore
+	vfs   vfs.FS
 	mu    sync.RWMutex
 }
 
 // NewBrandingService creates a new branding service
+//go:embed migrations
+var brandingMigrations embed.FS
+
 func NewBrandingService(storageDir string, pg *pgxpool.Pool) (*BrandingService, error) {
 	store, err := NewBrandingStore(storageDir, pg)
 	if err != nil {
 		return nil, err
 	}
 
-	// Ensure branding assets directory exists
+	// In Postgres mode branding files live in the branding_files table
+	// (ADR-0018); on disk the directory must exist.
 	assetsDir := store.brandingAssetsDir()
-	if err := os.MkdirAll(assetsDir, 0755); err != nil {
+	bs := &BrandingService{store: store, vfs: vfs.OS{}}
+	if pg != nil {
+		bs.vfs = vfs.NewPG(pg, assetsDir, "branding_files")
+	} else if err := os.MkdirAll(assetsDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create branding assets directory: %w", err)
 	}
-
-	return &BrandingService{
-		store: store,
-	}, nil
+	return bs, nil
 }
 
 // Reload re-reads the branding configuration from disk. Used after a restore
@@ -155,7 +167,7 @@ func (s *BrandingService) UploadLogo(file multipart.File, filename string) (stri
 	targetPath := filepath.Join(assetsDir, "logo"+ext)
 
 	// Write new logo atomically first
-	if err := shared.WriteStreamAtomic(targetPath, file, cfg.BrandingConstraints.MaxLogoSize, 0o644); err != nil {
+	if err := s.writeStream(targetPath, file, cfg.BrandingConstraints.MaxLogoSize); err != nil {
 		return "", sharederrors.NewLocalizedError(
 			"branding_logo_upload_failed",
 			"Failed to save logo file",
@@ -202,7 +214,7 @@ func (s *BrandingService) DeleteLogo() error {
 	}
 
 	logoPath := filepath.Join(s.store.brandingAssetsDir(), cfg.LogoFile)
-	if err := os.Remove(logoPath); err != nil && !os.IsNotExist(err) {
+	if err := s.vfs.Remove(logoPath); err != nil && !os.IsNotExist(err) {
 		return sharederrors.NewLocalizedError(
 			"branding_logo_delete_failed",
 			errFailedToDeleteLogo,
@@ -249,7 +261,7 @@ func (s *BrandingService) UploadFavicon(file multipart.File, filename string) (s
 	targetPath := filepath.Join(assetsDir, "favicon"+ext)
 
 	// Write new favicon atomically first
-	if err := shared.WriteStreamAtomic(targetPath, file, cfg.BrandingConstraints.MaxFaviconSize, 0o644); err != nil {
+	if err := s.writeStream(targetPath, file, cfg.BrandingConstraints.MaxFaviconSize); err != nil {
 		return "", sharederrors.NewLocalizedError(
 			"branding_favicon_upload_failed",
 			"Failed to save favicon file",
@@ -296,7 +308,7 @@ func (s *BrandingService) DeleteFavicon() error {
 	}
 
 	faviconPath := filepath.Join(s.store.brandingAssetsDir(), cfg.FaviconFile)
-	if err := os.Remove(faviconPath); err != nil && !os.IsNotExist(err) {
+	if err := s.vfs.Remove(faviconPath); err != nil && !os.IsNotExist(err) {
 		return sharederrors.NewLocalizedError(
 			"branding_favicon_delete_failed",
 			errFailedToDeleteFavicon,
@@ -321,4 +333,51 @@ func (s *BrandingService) DeleteFavicon() error {
 // GetBrandingAssetsDir returns the branding assets directory path
 func (s *BrandingService) GetBrandingAssetsDir() string {
 	return s.store.brandingAssetsDir()
+}
+
+// writeStream persists r to path enforcing maxBytes (shared.ErrFileTooLarge
+// on overflow). Postgres mode buffers through the virtual filesystem.
+func (s *BrandingService) writeStream(path string, r io.Reader, maxBytes int64) error {
+	if s.pg() != nil {
+		data, err := io.ReadAll(io.LimitReader(r, maxBytes+1))
+		if err != nil {
+			return err
+		}
+		if int64(len(data)) > maxBytes {
+			return shared.ErrFileTooLarge
+		}
+		return s.vfs.WriteStream(path, bytes.NewReader(data))
+	}
+	return shared.WriteStreamAtomic(path, r, maxBytes, 0o644)
+}
+
+// IsPG reports whether branding files live in Postgres (ADR-0018).
+func (s *BrandingService) IsPG() bool { return s.pg() != nil }
+
+// pg reports whether the service is Postgres-backed (vfs.PG).
+func (s *BrandingService) pg() *pgxpool.Pool {
+	if p, ok := s.vfs.(*vfs.PG); ok {
+		return p.Pool()
+	}
+	return nil
+}
+
+// Migrate applies the branding_files schema when the service is
+// Postgres-backed. Called once at boot by the composition root.
+func (s *BrandingService) Migrate(ctx context.Context) error {
+	p, ok := s.vfs.(*vfs.PG)
+	if !ok {
+		return nil
+	}
+	migs, err := fs.Sub(brandingMigrations, "migrations/branding_files")
+	if err != nil {
+		return fmt.Errorf("branding migrations: %w", err)
+	}
+	return pgdb.Migrate(ctx, p.Pool(), "branding_files", migs)
+}
+
+// ReadAsset returns a stored branding file by name — routes serve bytes,
+// not paths, so the backend stays agnostic.
+func (s *BrandingService) ReadAsset(filename string) ([]byte, error) {
+	return s.vfs.ReadFile(filepath.Join(s.store.brandingAssetsDir(), filename))
 }

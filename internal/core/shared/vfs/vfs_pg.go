@@ -1,10 +1,10 @@
-package tree
+package vfs
 
 import (
 	"database/sql"
-	"embed"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"path/filepath"
 	"strings"
@@ -14,36 +14,40 @@ import (
 	"github.com/perber/wiki/internal/core/shared/pgdb"
 )
 
-//go:embed migrations
-var treeMigrations embed.FS
-
-// pgFS is nodeFS backed by the tree_files table (ADR-0018): every page,
-// section directory and sidecar file under <storageDir>/root is a row keyed
-// by its root-relative path. Paths outside the root (schema.json, legacy
-// tree.json) pass through to the real filesystem — scratch state stays local.
-type pgFS struct {
+// PG is FS backed by a Postgres files table (ADR-0018): every file and
+// directory under root is a row keyed by its root-relative path. Paths
+// outside the root pass through to the real filesystem — scratch state stays
+// local. table names the per-domain table (tree_files, asset_files, ...) and
+// is always a package-owned constant, never user input.
+type PG struct {
 	db     *pgdb.DB
 	pool   *pgxpool.Pool
-	root   string // absolute path of the tree root
-	backup nodeFS
+	root   string // absolute path of the virtual root
+	table  string
+	backup FS
 }
 
 var errIsDirectory = errors.New("is a directory")
 var errNotEmpty = errors.New("directory not empty")
 
-func newPgFS(pool *pgxpool.Pool, root string) *pgFS {
-	return &pgFS{
+// NewPG builds a Postgres-backed FS rooted at root, storing rows in table.
+func NewPG(pool *pgxpool.Pool, root, table string) *PG {
+	return &PG{
 		db:     pgdb.NewPGDB(pool),
 		pool:   pool,
 		root:   filepath.Clean(root),
-		backup: osFS{},
+		table:  table,
+		backup: OS{},
 	}
 }
+
+// Pool exposes the underlying pool so owners can run migrations.
+func (f *PG) Pool() *pgxpool.Pool { return f.pool }
 
 // rel maps an absolute path to its root-relative '/'-separated form. The
 // second result is false for paths outside the root, which the caller must
 // pass through to the real filesystem.
-func (f *pgFS) rel(path string) (string, bool) {
+func (f *PG) rel(path string) (string, bool) {
 	abs := filepath.Clean(path)
 	if abs == f.root {
 		return "", true
@@ -69,50 +73,50 @@ func basePart(rel string) string {
 	return rel
 }
 
-type pgFileInfo struct {
+type fileInfo struct {
 	name string
 	size int64
 	dir  bool
 	mod  time.Time
 }
 
-func (i pgFileInfo) Name() string      { return i.name }
-func (i pgFileInfo) Size() int64       { return i.size }
-func (i pgFileInfo) IsDir() bool       { return i.dir }
-func (i pgFileInfo) ModTime() time.Time { return i.mod }
-func (i pgFileInfo) Sys() any          { return nil }
-func (i pgFileInfo) Mode() fs.FileMode {
+func (i fileInfo) Name() string      { return i.name }
+func (i fileInfo) Size() int64       { return i.size }
+func (i fileInfo) IsDir() bool       { return i.dir }
+func (i fileInfo) ModTime() time.Time { return i.mod }
+func (i fileInfo) Sys() any          { return nil }
+func (i fileInfo) Mode() fs.FileMode {
 	if i.dir {
 		return fs.ModeDir | 0o755
 	}
 	return 0o644
 }
 
-type pgDirEntry struct{ info pgFileInfo }
+type dirEntry struct{ info fileInfo }
 
-func (e pgDirEntry) Name() string { return e.info.name }
-func (e pgDirEntry) IsDir() bool  { return e.info.dir }
-func (e pgDirEntry) Type() fs.FileMode {
+func (e dirEntry) Name() string { return e.info.name }
+func (e dirEntry) IsDir() bool  { return e.info.dir }
+func (e dirEntry) Type() fs.FileMode {
 	if e.info.dir {
 		return fs.ModeDir
 	}
 	return 0
 }
-func (e pgDirEntry) Info() (fs.FileInfo, error) { return e.info, nil }
+func (e dirEntry) Info() (fs.FileInfo, error) { return e.info, nil }
 
-func (f *pgFS) Stat(path string) (fs.FileInfo, error) {
+func (f *PG) Stat(path string) (fs.FileInfo, error) {
 	rel, ok := f.rel(path)
 	if !ok {
 		return f.backup.Stat(path)
 	}
 	if rel == "" {
-		return pgFileInfo{name: filepath.Base(f.root), dir: true}, nil
+		return fileInfo{name: filepath.Base(f.root), dir: true}, nil
 	}
-	var i pgFileInfo
+	var i fileInfo
 	var kind string
 	err := f.db.QueryRow(
-		`SELECT kind, COALESCE(octet_length(content), 0), updated_at
-		 FROM tree_files WHERE path = $1`, rel,
+		fmt.Sprintf(`SELECT kind, COALESCE(octet_length(content), 0), updated_at
+		 FROM %s WHERE path = $1`, f.table), rel,
 	).Scan(&kind, &i.size, &i.mod)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -125,7 +129,7 @@ func (f *pgFS) Stat(path string) (fs.FileInfo, error) {
 	return i, nil
 }
 
-func (f *pgFS) ReadFile(path string) ([]byte, error) {
+func (f *PG) ReadFile(path string) ([]byte, error) {
 	rel, ok := f.rel(path)
 	if !ok {
 		return f.backup.ReadFile(path)
@@ -133,7 +137,7 @@ func (f *pgFS) ReadFile(path string) ([]byte, error) {
 	var content []byte
 	var kind string
 	err := f.db.QueryRow(
-		`SELECT kind, content FROM tree_files WHERE path = $1`, rel,
+		fmt.Sprintf(`SELECT kind, content FROM %s WHERE path = $1`, f.table), rel,
 	).Scan(&kind, &content)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -156,15 +160,15 @@ func ancestors(rel string) []string {
 	return out
 }
 
-func (f *pgFS) ensureDirsTx(tx *pgdb.Tx, rel string) error {
+func (f *PG) ensureDirsTx(tx *pgdb.Tx, rel string) error {
 	for _, a := range ancestors(rel) {
 		var kind string
-		err := tx.QueryRow(`SELECT kind FROM tree_files WHERE path = $1`, a).Scan(&kind)
+		err := tx.QueryRow(fmt.Sprintf(`SELECT kind FROM %s WHERE path = $1`, f.table), a).Scan(&kind)
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			if _, err := tx.Exec(
-				`INSERT INTO tree_files (path, parent_path, name, kind)
-				 VALUES ($1, $2, $3, 'dir')`, a, dirPart(a), basePart(a)); err != nil {
+				fmt.Sprintf(`INSERT INTO %s (path, parent_path, name, kind)
+				 VALUES ($1, $2, $3, 'dir')`, f.table), a, dirPart(a), basePart(a)); err != nil {
 				return err
 			}
 		case err != nil:
@@ -176,7 +180,7 @@ func (f *pgFS) ensureDirsTx(tx *pgdb.Tx, rel string) error {
 	return nil
 }
 
-func (f *pgFS) writeFile(path string, data []byte) error {
+func (f *PG) writeFile(path string, data []byte) error {
 	rel, ok := f.rel(path)
 	if !ok {
 		return f.backup.WriteFile(path, data, 0o644)
@@ -194,27 +198,37 @@ func (f *pgFS) writeFile(path string, data []byte) error {
 		return err
 	}
 	if _, err := tx.Exec(
-		`INSERT INTO tree_files (path, parent_path, name, kind, content, updated_at)
+		fmt.Sprintf(`INSERT INTO %s (path, parent_path, name, kind, content, updated_at)
 		 VALUES ($1, $2, $3, 'file', $4, now())
 		 ON CONFLICT (path) DO UPDATE
-		   SET kind = 'file', content = EXCLUDED.content, updated_at = now()`,
+		   SET kind = 'file', content = EXCLUDED.content, updated_at = now()`, f.table),
 		rel, dirPart(rel), basePart(rel), data); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
-func (f *pgFS) WriteFileAtomic(path string, data []byte, _ fs.FileMode) error {
+func (f *PG) WriteFileAtomic(path string, data []byte, _ fs.FileMode) error {
 	// A single tx already gives the all-or-nothing guarantee WriteFileAtomic
 	// emulates on POSIX (temp + rename).
 	return f.writeFile(path, data)
 }
 
-func (f *pgFS) WriteFile(path string, data []byte, _ fs.FileMode) error {
+func (f *PG) WriteFile(path string, data []byte, _ fs.FileMode) error {
 	return f.writeFile(path, data)
 }
 
-func (f *pgFS) MkdirAll(path string, _ fs.FileMode) error {
+// WriteStream buffers r and writes it — wiki assets are small enough that
+// in-memory buffering is fine.
+func (f *PG) WriteStream(path string, r io.Reader) error {
+	data, err := io.ReadAll(r)
+	if err != nil {
+		return err
+	}
+	return f.writeFile(path, data)
+}
+
+func (f *PG) MkdirAll(path string, _ fs.FileMode) error {
 	rel, ok := f.rel(path)
 	if !ok {
 		return f.backup.MkdirAll(path, 0o755)
@@ -230,12 +244,12 @@ func (f *pgFS) MkdirAll(path string, _ fs.FileMode) error {
 			continue
 		}
 		var kind string
-		err := tx.QueryRow(`SELECT kind FROM tree_files WHERE path = $1`, a).Scan(&kind)
+		err := tx.QueryRow(fmt.Sprintf(`SELECT kind FROM %s WHERE path = $1`, f.table), a).Scan(&kind)
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			if _, err := tx.Exec(
-				`INSERT INTO tree_files (path, parent_path, name, kind)
-				 VALUES ($1, $2, $3, 'dir')`, a, dirPart(a), basePart(a)); err != nil {
+				fmt.Sprintf(`INSERT INTO %s (path, parent_path, name, kind)
+				 VALUES ($1, $2, $3, 'dir')`, f.table), a, dirPart(a), basePart(a)); err != nil {
 				return err
 			}
 		case err != nil:
@@ -247,7 +261,7 @@ func (f *pgFS) MkdirAll(path string, _ fs.FileMode) error {
 	return tx.Commit()
 }
 
-func (f *pgFS) Rename(old, new string) error {
+func (f *PG) Rename(old, new string) error {
 	oldRel, ok := f.rel(old)
 	if !ok {
 		return f.backup.Rename(old, new)
@@ -264,7 +278,7 @@ func (f *pgFS) Rename(old, new string) error {
 	defer func() { _ = tx.Rollback() }()
 
 	var kind string
-	if err := tx.QueryRow(`SELECT kind FROM tree_files WHERE path = $1`, oldRel).Scan(&kind); err != nil {
+	if err := tx.QueryRow(fmt.Sprintf(`SELECT kind FROM %s WHERE path = $1`, f.table), oldRel).Scan(&kind); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return &fs.PathError{Op: "rename", Path: old, Err: fs.ErrNotExist}
 		}
@@ -272,12 +286,12 @@ func (f *pgFS) Rename(old, new string) error {
 	}
 
 	// os.Rename overwrites a file target silently and refuses a non-empty dir.
-	if _, err := tx.Exec(`DELETE FROM tree_files WHERE path = $1 AND kind = 'file'`, newRel); err != nil {
+	if _, err := tx.Exec(fmt.Sprintf(`DELETE FROM %s WHERE path = $1 AND kind = 'file'`, f.table), newRel); err != nil {
 		return err
 	}
 	var children int
 	if err := tx.QueryRow(
-		`SELECT count(*) FROM tree_files WHERE parent_path = $1`, newRel,
+		fmt.Sprintf(`SELECT count(*) FROM %s WHERE parent_path = $1`, f.table), newRel,
 	).Scan(&children); err != nil {
 		return err
 	}
@@ -289,26 +303,26 @@ func (f *pgFS) Rename(old, new string) error {
 		return err
 	}
 	if _, err := tx.Exec(
-		`UPDATE tree_files
+		fmt.Sprintf(`UPDATE %s
 		    SET path = concat($1::text, substring(path from $2::int)),
 		        name = substring(path from '[^/]+$'),
 		        parent_path = CASE WHEN strpos(path, '/') = 0 THEN ''
 		                           ELSE substring(path from '^(.*)/[^/]+$') END,
 		        updated_at = now()
-		  WHERE path = $3 OR path LIKE $3 || '/%'`,
+		  WHERE path = $3 OR path LIKE $3 || '/%%'`, f.table),
 		newRel, len(oldRel)+1, oldRel); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
-func (f *pgFS) Remove(path string) error {
+func (f *PG) Remove(path string) error {
 	rel, ok := f.rel(path)
 	if !ok {
 		return f.backup.Remove(path)
 	}
 	var kind string
-	if err := f.db.QueryRow(`SELECT kind FROM tree_files WHERE path = $1`, rel).Scan(&kind); err != nil {
+	if err := f.db.QueryRow(fmt.Sprintf(`SELECT kind FROM %s WHERE path = $1`, f.table), rel).Scan(&kind); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return &fs.PathError{Op: "remove", Path: path, Err: fs.ErrNotExist}
 		}
@@ -317,7 +331,7 @@ func (f *pgFS) Remove(path string) error {
 	if kind == "dir" {
 		var children int
 		if err := f.db.QueryRow(
-			`SELECT count(*) FROM tree_files WHERE parent_path = $1`, rel,
+			fmt.Sprintf(`SELECT count(*) FROM %s WHERE parent_path = $1`, f.table), rel,
 		).Scan(&children); err != nil {
 			return err
 		}
@@ -325,11 +339,11 @@ func (f *pgFS) Remove(path string) error {
 			return &fs.PathError{Op: "remove", Path: path, Err: errNotEmpty}
 		}
 	}
-	_, err := f.db.Exec(`DELETE FROM tree_files WHERE path = $1`, rel)
+	_, err := f.db.Exec(fmt.Sprintf(`DELETE FROM %s WHERE path = $1`, f.table), rel)
 	return err
 }
 
-func (f *pgFS) RemoveAll(path string) error {
+func (f *PG) RemoveAll(path string) error {
 	rel, ok := f.rel(path)
 	if !ok {
 		return f.backup.RemoveAll(path)
@@ -337,11 +351,11 @@ func (f *pgFS) RemoveAll(path string) error {
 	if rel == "" {
 		return fmt.Errorf("refusing to remove tree root")
 	}
-	_, err := f.db.Exec(`DELETE FROM tree_files WHERE path = $1 OR path LIKE $1 || '/%'`, rel)
+	_, err := f.db.Exec(fmt.Sprintf(`DELETE FROM %s WHERE path = $1 OR path LIKE $1 || '/%%'`, f.table), rel)
 	return err
 }
 
-func (f *pgFS) ReadDir(path string) ([]fs.DirEntry, error) {
+func (f *PG) ReadDir(path string) ([]fs.DirEntry, error) {
 	rel, ok := f.rel(path)
 	if !ok {
 		return f.backup.ReadDir(path)
@@ -352,8 +366,8 @@ func (f *pgFS) ReadDir(path string) ([]fs.DirEntry, error) {
 		}
 	}
 	rows, err := f.db.Query(
-		`SELECT name, kind, COALESCE(octet_length(content), 0), updated_at
-		 FROM tree_files WHERE parent_path = $1 ORDER BY name`, rel)
+		fmt.Sprintf(`SELECT name, kind, COALESCE(octet_length(content), 0), updated_at
+		 FROM %s WHERE parent_path = $1 ORDER BY name`, f.table), rel)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +375,7 @@ func (f *pgFS) ReadDir(path string) ([]fs.DirEntry, error) {
 
 	var out []fs.DirEntry
 	for rows.Next() {
-		var e pgDirEntry
+		var e dirEntry
 		var kind string
 		if err := rows.Scan(&e.info.name, &kind, &e.info.size, &e.info.mod); err != nil {
 			return nil, err

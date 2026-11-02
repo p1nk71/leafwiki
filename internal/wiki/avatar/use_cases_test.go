@@ -49,7 +49,7 @@ type avatarFixture struct {
 func newAvatarFixture(t *testing.T) *avatarFixture {
 	t.Helper()
 	dir := t.TempDir()
-	svc, err := coreavatar.NewAvatarService(dir)
+	svc, err := coreavatar.NewAvatarService(dir, nil)
 	if err != nil {
 		t.Fatalf("NewAvatarService: %v", err)
 	}

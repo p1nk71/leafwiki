@@ -23,6 +23,13 @@ import (
 	"sort"
 	"strings"
 
+	"context"
+	"embed"
+	"io/fs"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
+	"github.com/perber/wiki/internal/core/shared/vfs"
 	"golang.org/x/image/draw"
 	_ "golang.org/x/image/webp" // decode-only webp support (blank-imported like the stdlib formats above)
 
@@ -30,6 +37,9 @@ import (
 	"github.com/perber/wiki/internal/core/shared"
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
 )
+
+//go:embed migrations
+var avatarMigrations embed.FS
 
 // MaxUploadSize is the largest accepted avatar upload, in bytes.
 const MaxUploadSize = 5 << 20 // 5 MiB
@@ -69,16 +79,37 @@ func allowedExtsAsString() string {
 // <storageDir>/avatars/<userID>.png.
 type AvatarService struct {
 	avatarsDir string
+	pg         *pgxpool.Pool
+	vfs        vfs.FS
 }
 
 // NewAvatarService creates the avatars directory (if missing) under
-// storageDir and returns a service ready to accept uploads.
-func NewAvatarService(storageDir string) (*AvatarService, error) {
+// storageDir — or the Postgres avatar_files table when pg is set
+// (ADR-0018). Migrate applies the schema at boot.
+func NewAvatarService(storageDir string, pg *pgxpool.Pool) (*AvatarService, error) {
 	avatarsDir := filepath.Join(storageDir, "avatars")
-	if err := os.MkdirAll(avatarsDir, 0755); err != nil {
+	s := &AvatarService{avatarsDir: avatarsDir, pg: pg, vfs: vfs.OS{}}
+	if pg != nil {
+		s.vfs = vfs.NewPG(pg, avatarsDir, "avatar_files")
+		return s, nil
+	}
+	if err := s.vfs.MkdirAll(avatarsDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create avatars directory: %w", err)
 	}
-	return &AvatarService{avatarsDir: avatarsDir}, nil
+	return s, nil
+}
+
+// Migrate applies the avatar_files schema when the service is
+// Postgres-backed. Called once at boot by the composition root.
+func (s *AvatarService) Migrate(ctx context.Context) error {
+	if s.pg == nil {
+		return nil
+	}
+	migs, err := fs.Sub(avatarMigrations, "migrations/avatar_files")
+	if err != nil {
+		return fmt.Errorf("avatar migrations: %w", err)
+	}
+	return pgdb.Migrate(ctx, s.pg, "avatar_files", migs)
 }
 
 // UploadAvatar validates, decodes, center-crops to a square, resizes to
@@ -145,7 +176,7 @@ func (s *AvatarService) UploadAvatar(userID string, file multipart.File, filenam
 	}
 
 	targetPath := s.avatarPath(userID)
-	if err := shared.WriteStreamAtomic(targetPath, &out, MaxUploadSize, 0o644); err != nil {
+	if err := s.vfs.WriteStream(targetPath, &out); err != nil {
 		return sharederrors.NewLocalizedError(
 			"avatar_upload_failed",
 			"Failed to save avatar file",
@@ -169,7 +200,7 @@ func (s *AvatarService) DeleteAvatar(userID string) error {
 		)
 	}
 
-	if err := os.Remove(s.avatarPath(userID)); err != nil && !os.IsNotExist(err) {
+	if err := s.vfs.Remove(s.avatarPath(userID)); err != nil && !os.IsNotExist(err) {
 		return sharederrors.NewLocalizedError(
 			"avatar_delete_failed",
 			"Failed to delete avatar",
@@ -187,10 +218,19 @@ func (s *AvatarService) AvatarPath(userID string) (string, bool) {
 		return "", false
 	}
 	path := s.avatarPath(userID)
-	if _, err := os.Stat(path); err != nil {
+	if _, err := s.vfs.Stat(path); err != nil {
 		return "", false
 	}
 	return path, true
+}
+
+// IsPG reports whether avatars live in Postgres (ADR-0018).
+func (s *AvatarService) IsPG() bool { return s.pg != nil }
+
+// ReadAvatar returns userID's avatar bytes — Postgres mode serves bytes,
+// not paths.
+func (s *AvatarService) ReadAvatar(userID string) ([]byte, error) {
+	return s.vfs.ReadFile(s.avatarPath(userID))
 }
 
 func (s *AvatarService) avatarPath(userID string) string {

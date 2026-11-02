@@ -102,6 +102,17 @@ func (r *Routes) handleServeAvatar(c *gin.Context) {
 		return
 	}
 
+	if r.avatarService.IsPG() {
+		data, err := r.avatarService.ReadAvatar(userID)
+		if err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		disableClientCache(c)
+		c.Data(http.StatusOK, "image/png", data)
+		return
+	}
+
 	path, found := r.avatarService.AvatarPath(userID)
 	if !found {
 		c.Status(http.StatusNotFound)

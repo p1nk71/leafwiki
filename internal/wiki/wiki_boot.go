@@ -117,7 +117,10 @@ func (w *Wiki) initCoreServices(options *WikiOptions) error {
 		return err
 	}
 	w.slug = tree.NewSlugService()
-	w.asset = assets.NewAssetService(w.storageDir, w.slug)
+	w.asset = assets.NewAssetService(w.storageDir, w.slug, w.pg)
+	if err := w.asset.Migrate(context.Background()); err != nil {
+		return fmt.Errorf("asset migrations: %w", err)
+	}
 	w.asset.SetIgnoreCache(w.ignoreCache)
 
 	return nil
@@ -250,14 +253,20 @@ func (w *Wiki) initBranding() error {
 	if err != nil {
 		return fmt.Errorf("failed to init branding service: %w", err)
 	}
+	if err := w.branding.Migrate(context.Background()); err != nil {
+		return fmt.Errorf("branding migrations: %w", err)
+	}
 	return nil
 }
 
 func (w *Wiki) initAvatarService() error {
 	var err error
-	w.avatar, err = avatar.NewAvatarService(w.storageDir)
+	w.avatar, err = avatar.NewAvatarService(w.storageDir, w.pg)
 	if err != nil {
 		return fmt.Errorf("failed to init avatar service: %w", err)
+	}
+	if err := w.avatar.Migrate(context.Background()); err != nil {
+		return fmt.Errorf("avatar migrations: %w", err)
 	}
 	return nil
 }

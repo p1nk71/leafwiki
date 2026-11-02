@@ -1,7 +1,11 @@
 package assets
 
 import (
+	"context"
+	"embed"
+	"io/fs"
 	"errors"
+	"bytes"
 	"fmt"
 	"io"
 	"log/slog"
@@ -14,10 +18,16 @@ import (
 
 	"github.com/perber/wiki/internal/core/shared"
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
+	"github.com/perber/wiki/internal/core/shared/vfs"
 	"github.com/perber/wiki/internal/core/tree"
 
 	"github.com/perber/wiki/internal/core/ignore"
 )
+
+//go:embed migrations
+var assetMigrations embed.FS
 
 const (
 	DefaultMaxUploadSizeBytes int64 = 50 * 1024 * 1024
@@ -28,6 +38,8 @@ const (
 )
 
 type AssetService struct {
+	pg  *pgxpool.Pool
+	vfs vfs.FS
 	assetsDir   string
 	storageDir  string
 	slugger     *tree.SlugService
@@ -92,35 +104,83 @@ func validateFilename(filename string) error {
 	return nil
 }
 
-func NewAssetService(storageDir string, slugger *tree.SlugService) *AssetService {
+// NewAssetService opens assets under storageDir — or on the Postgres
+// asset_files table when pg is set (ADR-0018). In pg mode the schema
+// migration runs in Migrate, called by the composition root at boot.
+func NewAssetService(storageDir string, slugger *tree.SlugService, pg *pgxpool.Pool) *AssetService {
 	// Ensure the storage directory exists
 	if err := os.MkdirAll(storageDir, 0755); err != nil {
 		panic(fmt.Sprintf("could not create storage directory: %v", err))
 	}
-	// Ensure the assets directory exists
 	assetsDir := filepath.Join(storageDir, "assets")
-	if err := os.MkdirAll(assetsDir, 0755); err != nil {
-		panic(fmt.Sprintf("could not create assets directory: %v", err))
-	}
 
-	return &AssetService{
+	s := &AssetService{
 		assetsDir:  assetsDir,
 		storageDir: storageDir,
 		slugger:    slugger,
+		pg:         pg,
+		vfs:        vfs.OS{},
 		log:        slog.Default().With("component", "AssetService"),
 	}
+	if pg != nil {
+		s.vfs = vfs.NewPG(pg, assetsDir, "asset_files")
+		return s
+	}
+	if err := s.vfs.MkdirAll(assetsDir, 0755); err != nil {
+		panic(fmt.Sprintf("could not create assets directory: %v", err))
+	}
+	return s
+}
+
+// Migrate applies the asset_files schema when the service is Postgres-backed.
+// Called once at boot by the composition root.
+func (s *AssetService) Migrate(ctx context.Context) error {
+	if s.pg == nil {
+		return nil
+	}
+	migs, err := fs.Sub(assetMigrations, "migrations/asset_files")
+	if err != nil {
+		return fmt.Errorf("asset migrations: %w", err)
+	}
+	return pgdb.Migrate(ctx, s.pg, "asset_files", migs)
+}
+
+// writeStream persists r to path enforcing maxBytes. Postgres mode reads
+// through the virtual filesystem (ADR-0018); file mode keeps the temp-file
+// atomic write.
+func (s *AssetService) writeStream(path string, r io.Reader, maxBytes int64) error {
+	if s.pg != nil {
+		data, err := io.ReadAll(io.LimitReader(r, maxBytes+1))
+		if err != nil {
+			return err
+		}
+		if int64(len(data)) > maxBytes {
+			return shared.ErrFileTooLarge
+		}
+		return s.vfs.WriteStream(path, bytes.NewReader(data))
+	}
+	return shared.WriteStreamAtomic(path, r, maxBytes, 0o644)
 }
 
 func (s *AssetService) GetAssetsDir() string {
 	return s.assetsDir
 }
 
+// IsPG reports whether the service stores assets in Postgres (ADR-0018).
+func (s *AssetService) IsPG() bool { return s.pg != nil }
+
+// ReadAssetData returns an asset's bytes by its path under assetsDir —
+// the HTTP layer serves bytes, not paths, in Postgres mode.
+func (s *AssetService) ReadAssetData(path string) ([]byte, error) {
+	return s.vfs.ReadFile(path)
+}
+
 func (s *AssetService) ensureAssetPagePathExists(page *tree.PageNode) (string, error) {
 	pagePath := assetPageDiskPath(s.assetsDir, page.ID)
 	// check if the page path exists
-	if _, err := os.Stat(pagePath); os.IsNotExist(err) {
+	if _, err := s.vfs.Stat(pagePath); os.IsNotExist(err) {
 		// create the page path
-		if err := os.MkdirAll(pagePath, 0755); err != nil {
+		if err := s.vfs.MkdirAll(pagePath, 0755); err != nil {
 			return "", fmt.Errorf("could not create page path: %w", err)
 		}
 	}
@@ -132,7 +192,7 @@ func (s *AssetService) getAssetPagePath(page *tree.PageNode) (string, error) {
 	pagePath := assetPageDiskPath(s.assetsDir, page.ID)
 
 	// check if the page path exists
-	if _, err := os.Stat(pagePath); os.IsNotExist(err) {
+	if _, err := s.vfs.Stat(pagePath); os.IsNotExist(err) {
 		return "", fmt.Errorf("page path does not exist: %w", err)
 	}
 
@@ -159,7 +219,7 @@ func (s *AssetService) SaveAssetForPage(page *tree.PageNode, file multipart.File
 	}
 
 	// Read existing filenames
-	entries, _ := os.ReadDir(uploadPath)
+	entries, _ := s.vfs.ReadDir(uploadPath)
 	existing := make([]string, 0, len(entries))
 	for _, e := range entries {
 		existing = append(existing, e.Name())
@@ -168,7 +228,7 @@ func (s *AssetService) SaveAssetForPage(page *tree.PageNode, file multipart.File
 	finalFilename := s.slugger.GenerateUniqueFilename(existing, originalFilename)
 	fullPath := assetFileDiskPath(uploadPath, finalFilename)
 
-	if err := shared.WriteStreamAtomic(fullPath, file, maxBytes, 0o644); err != nil {
+	if err := s.writeStream(fullPath, file, maxBytes); err != nil {
 		if errors.Is(err, shared.ErrFileTooLarge) {
 			return "", sharederrors.NewLocalizedError("asset_file_too_large", "File is too large", "file is too large", err)
 		}
@@ -189,7 +249,7 @@ func (s *AssetService) ListAssetsForPage(page *tree.PageNode) ([]string, error) 
 		return []string{}, nil
 	}
 
-	files, err := os.ReadDir(pagePath)
+	files, err := s.vfs.ReadDir(pagePath)
 	if err != nil && !os.IsNotExist(err) {
 		return []string{}, nil
 	}
@@ -225,7 +285,7 @@ func (s *AssetService) DeleteAsset(page *tree.PageNode, filename string) error {
 
 	fullPath := assetFileDiskPath(assetPath, filename)
 
-	if err := os.Remove(fullPath); err != nil {
+	if err := s.vfs.Remove(fullPath); err != nil {
 		if os.IsNotExist(err) {
 			return sharederrors.NewLocalizedError("asset_not_found", errAssetNotFound, errAssetNotFoundFmt, nil, filename)
 		}
@@ -233,9 +293,9 @@ func (s *AssetService) DeleteAsset(page *tree.PageNode, filename string) error {
 	}
 
 	// Check if the directory is empty and remove it if so
-	files, err := os.ReadDir(assetPath)
+	files, err := s.vfs.ReadDir(assetPath)
 	if err == nil && len(files) == 0 {
-		_ = os.Remove(assetPath) // we don't care if this fails
+		_ = s.vfs.Remove(assetPath) // we don't care if this fails
 	}
 
 	return nil
@@ -255,8 +315,8 @@ func (s *AssetService) DeleteAllAssetsForPage(page *tree.PageNode) error {
 		// no assets dir -> nothing to delete
 		return nil
 	}
-	if _, err := os.Stat(assetDir); err == nil {
-		return os.RemoveAll(assetDir)
+	if _, err := s.vfs.Stat(assetDir); err == nil {
+		return s.vfs.RemoveAll(assetDir)
 	}
 	return nil
 }
@@ -299,17 +359,17 @@ func (s *AssetService) RenameAsset(page *tree.PageNode, oldFilename, newFilename
 	}
 
 	// Ensure that no file with the new name already exists
-	if _, statErr := os.Stat(newFullPath); statErr == nil {
+	if _, statErr := s.vfs.Stat(newFullPath); statErr == nil {
 		return "", sharederrors.NewLocalizedError("asset_already_exists", "Asset already exists", "asset %s already exists", nil, newFilename)
 	} else if !os.IsNotExist(statErr) {
 		return "", sharederrors.NewLocalizedError("asset_rename_failed", "Failed to rename asset", "failed to rename asset %s", statErr, oldFilename)
 	}
 
-	if _, err := os.Stat(oldFullPath); os.IsNotExist(err) {
+	if _, err := s.vfs.Stat(oldFullPath); os.IsNotExist(err) {
 		return "", sharederrors.NewLocalizedError("asset_not_found", errAssetNotFound, errAssetNotFoundFmt, nil, oldFilename)
 	}
 
-	if err := os.Rename(oldFullPath, newFullPath); err != nil {
+	if err := s.vfs.Rename(oldFullPath, newFullPath); err != nil {
 		return "", sharederrors.NewLocalizedError("asset_rename_failed", "Failed to rename asset", "failed to rename asset %s", err, oldFilename)
 	}
 
@@ -336,7 +396,7 @@ func (s *AssetService) CopyAllAssets(sourcePage *tree.PageNode, targetPage *tree
 		return fmt.Errorf("could not create target asset path: %w", err)
 	}
 
-	entries, err := os.ReadDir(sourceAssetPath)
+	entries, err := s.vfs.ReadDir(sourceAssetPath)
 	if err != nil {
 		return fmt.Errorf("could not read source asset directory: %w", err)
 	}
@@ -357,31 +417,12 @@ func (s *AssetService) copySingleAsset(sourceAssetPath string, targetAssetPath s
 	sourceFilePath := assetFileDiskPath(sourceAssetPath, entry.Name())
 	targetFilePath := assetFileDiskPath(targetAssetPath, entry.Name())
 
-	sourceFile, err := os.Open(sourceFilePath)
+	data, err := s.vfs.ReadFile(sourceFilePath)
 	if err != nil {
 		return fmt.Errorf("could not open source asset file: %w", err)
 	}
-	defer func() {
-		err := sourceFile.Close()
-		if err != nil {
-			s.log.Warn("failed to close source file", "file", sourceFilePath, "error", err)
-		}
-	}()
-
-	targetFile, err := os.Create(targetFilePath)
-	if err != nil {
-		return fmt.Errorf("could not create target asset file: %w", err)
-	}
-	defer func() {
-		err := targetFile.Close()
-		if err != nil {
-			s.log.Warn("failed to close target file", "file", targetFilePath, "error", err)
-		}
-	}()
-
-	if _, err := io.Copy(targetFile, sourceFile); err != nil {
+	if err := s.vfs.WriteStream(targetFilePath, bytes.NewReader(data)); err != nil {
 		return fmt.Errorf("could not copy asset file: %w", err)
 	}
-
 	return nil
 }
