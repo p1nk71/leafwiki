@@ -22,12 +22,14 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/backup"
 	"github.com/perber/wiki/internal/core/auth"
 	"github.com/perber/wiki/internal/core/email"
 	"github.com/perber/wiki/internal/core/ignore"
 	"github.com/perber/wiki/internal/core/settings"
 	sharedcrypto "github.com/perber/wiki/internal/core/shared/crypto"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
 	"github.com/perber/wiki/internal/core/tools"
 	httpinternal "github.com/perber/wiki/internal/http"
 	httpmetrics "github.com/perber/wiki/internal/http/metrics"
@@ -217,9 +219,20 @@ func runServerCommand(_ context.Context, cmd *cli.Command, cfg *serverConfig) er
 		slog.Default().Info("Data directory created", "path", cfg.server.dataDir)
 	}
 
-	publicAccessService := buildPublicAccessService(cmd, cfg)
+	// Canonical PostgreSQL pool (ADR-0018). Opened before the settings-backed
+	// services so they can store their config in the settings table; the wiki
+	// takes ownership and closes it on shutdown.
+	var pgPool *pgxpool.Pool
+	if cfg.server.databaseURL != "" {
+		pgPool, err = pgdb.Open(context.Background(), cfg.server.databaseURL)
+		if err != nil {
+			fail("Failed to connect to PostgreSQL", "error", err)
+		}
+	}
 
-	tocDisplayService, err := tocdisplay.New(cfg.server.dataDir)
+	publicAccessService := buildPublicAccessService(cmd, cfg, pgPool)
+
+	tocDisplayService, err := tocdisplay.New(cfg.server.dataDir, pgPool)
 	if err != nil {
 		fail("Failed to load toc-display configuration", "error", err)
 	}
@@ -249,7 +262,7 @@ func runServerCommand(_ context.Context, cmd *cli.Command, cfg *serverConfig) er
 
 	w, err := wiki.NewWiki(&wiki.WikiOptions{
 		StorageDir:             cfg.server.dataDir,
-		DatabaseURL:            cfg.server.databaseURL,
+		PG:                     pgPool,
 		AdminUsername:          cfg.auth.adminUsername,
 		AdminEmail:             cfg.auth.adminEmail,
 		AdminPassword:          cfg.auth.adminPassword,
@@ -434,11 +447,11 @@ func stateDBPaths(dataDir string) []string {
 // today's behaviour and get a status-only Settings view). Otherwise it is
 // settings-managed, reading its initial value from
 // <data-dir>/public-access.json (absent ⇒ disabled).
-func buildPublicAccessService(cmd *cli.Command, cfg *serverConfig) *publicaccess.Service {
+func buildPublicAccessService(cmd *cli.Command, cfg *serverConfig, pg *pgxpool.Pool) *publicaccess.Service {
 	if cmd.IsSet("public-access") || cfg.auth.disableAuth {
 		return publicaccess.NewEnvManaged(cfg.auth.publicAccess || cfg.auth.disableAuth)
 	}
-	svc, err := publicaccess.NewSettingsManaged(cfg.server.dataDir)
+	svc, err := publicaccess.NewSettingsManaged(cfg.server.dataDir, pg)
 	if err != nil {
 		fail("Failed to load public-access configuration", "error", err)
 	}

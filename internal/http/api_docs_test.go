@@ -742,7 +742,7 @@ func newAPIDocsRouterWith(t *testing.T, override func(*httpinternal.RouterOption
 	w.SetSnapshotRoutes(wikisnapshot.NewRoutes(nil, nil, w.AuthService(), 0))
 	w.SetRestoreRoutes(wikirestore.NewRoutes(nil, w.AuthService()))
 	publicAccess := publicaccess.NewEnvManaged(false)
-	tocDisplay, err := tocdisplay.New(t.TempDir())
+	tocDisplay, err := tocdisplay.New(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("tocdisplay.New: %v", err)
 	}

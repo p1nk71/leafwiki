@@ -19,12 +19,16 @@
 package settings
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/shared"
 )
 
@@ -37,13 +41,21 @@ type Reloadable interface {
 	Reload() error
 }
 
-// Store is an atomic, RWMutex-cached JSON file living in the data directory.
-// A missing file is not an error: Get returns the zero value passed to New
-// until the first Put.
+// Store is an atomic, RWMutex-cached value: either a JSON file in the data
+// directory (New) or a row in the Postgres settings table (NewPG, ADR-0018).
+// A missing file or row is not an error: Get returns the zero value passed
+// to the constructor until the first Put.
 type Store[T any] struct {
 	path   string
 	perm   os.FileMode
 	onLoad func(*T)
+
+	// Postgres backend, set by NewPG. ctx is the store's lifetime context:
+	// Reload may run long after construction, and Put/Reload have no caller
+	// context to borrow.
+	ctx    context.Context
+	pg     *pgxpool.Pool
+	pgName string
 
 	mu  sync.RWMutex
 	val T
@@ -88,7 +100,14 @@ func (s *Store[T]) Put(v T) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if err := shared.WriteFileAtomic(s.path, data, s.perm); err != nil {
+	if s.pg != nil {
+		if _, err := s.pg.Exec(s.ctx,
+			`INSERT INTO settings (name, value) VALUES ($1, $2)
+			 ON CONFLICT (name) DO UPDATE SET value = $2, updated_at = now()`,
+			s.pgName, data); err != nil {
+			return fmt.Errorf("write settings.%s: %w", s.pgName, err)
+		}
+	} else if err := shared.WriteFileAtomic(s.path, data, s.perm); err != nil {
 		return fmt.Errorf("write %s: %w", filepath.Base(s.path), err)
 	}
 	s.val = v
@@ -109,7 +128,17 @@ func (s *Store[T]) Reload() error {
 }
 
 func (s *Store[T]) reloadLocked() error {
-	data, err := os.ReadFile(s.path)
+	var data []byte
+	var err error
+	if s.pg != nil {
+		err = s.pg.QueryRow(s.ctx,
+			`SELECT value FROM settings WHERE name = $1`, s.pgName).Scan(&data)
+		if errors.Is(err, pgx.ErrNoRows) {
+			err = os.ErrNotExist
+		}
+	} else {
+		data, err = os.ReadFile(s.path)
+	}
 	switch {
 	case err == nil:
 		var v T

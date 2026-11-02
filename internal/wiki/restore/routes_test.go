@@ -59,7 +59,7 @@ func newTestManagerWithMaxUploadSize(t *testing.T, maxUploadSizeBytes int64) *re
 	authService := coreauth.NewAuthService(coreauth.NewUserService(userStore), sessions, nil)
 	t.Cleanup(func() { _ = authService.Close() })
 
-	brandingService, err := branding.NewBrandingService(base)
+	brandingService, err := branding.NewBrandingService(base, nil)
 	if err != nil {
 		t.Fatalf("NewBrandingService failed: %v", err)
 	}

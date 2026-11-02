@@ -12,7 +12,7 @@ import (
 )
 
 func TestService_SettingsManagedNoFile_DisabledByDefault(t *testing.T) {
-	svc, err := NewSettingsManaged(t.TempDir())
+	svc, err := NewSettingsManaged(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged: %v", err)
 	}
@@ -27,7 +27,7 @@ func TestService_SettingsManagedNoFile_DisabledByDefault(t *testing.T) {
 func TestService_SettingsManagedSetEnabled_PersistsAcrossReconstruction(t *testing.T) {
 	dir := t.TempDir()
 
-	svc, err := NewSettingsManaged(dir)
+	svc, err := NewSettingsManaged(dir, nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestService_SettingsManagedSetEnabled_PersistsAcrossReconstruction(t *testi
 	}
 
 	// A fresh service over the same dir must see the persisted value.
-	reopened, err := NewSettingsManaged(dir)
+	reopened, err := NewSettingsManaged(dir, nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged (reopen): %v", err)
 	}
@@ -50,7 +50,7 @@ func TestService_SettingsManagedSetEnabled_PersistsAcrossReconstruction(t *testi
 	if err := reopened.SetEnabled(false); err != nil {
 		t.Fatalf("SetEnabled(false): %v", err)
 	}
-	again, err := NewSettingsManaged(dir)
+	again, err := NewSettingsManaged(dir, nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged (reopen 2): %v", err)
 	}
@@ -61,7 +61,7 @@ func TestService_SettingsManagedSetEnabled_PersistsAcrossReconstruction(t *testi
 
 func TestService_SettingsManagedSetEnabled_WritesModeSixHundredJSON(t *testing.T) {
 	dir := t.TempDir()
-	svc, err := NewSettingsManaged(dir)
+	svc, err := NewSettingsManaged(dir, nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestService_SettingsManagedSetEnabled_WritesModeSixHundredJSON(t *testing.T
 
 func TestService_SettingsManagedReload_PicksUpExternalFileChange(t *testing.T) {
 	dir := t.TempDir()
-	svc, err := NewSettingsManaged(dir)
+	svc, err := NewSettingsManaged(dir, nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestService_SettingsManagedLoad_CorruptFileIsAnError(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "public-access.json"), []byte("not json"), 0o600); err != nil {
 		t.Fatalf("write corrupt file: %v", err)
 	}
-	if _, err := NewSettingsManaged(dir); err == nil {
+	if _, err := NewSettingsManaged(dir, nil); err == nil {
 		t.Fatal("expected NewSettingsManaged to fail on an unparseable public-access.json")
 	}
 }
@@ -178,7 +178,7 @@ func TestService_EnvManagedSetEnabled_NeverWritesAFile(t *testing.T) {
 }
 
 func TestService_SettingsManagedConcurrentAccess_IsRaceFree(t *testing.T) {
-	svc, err := NewSettingsManaged(t.TempDir())
+	svc, err := NewSettingsManaged(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged: %v", err)
 	}

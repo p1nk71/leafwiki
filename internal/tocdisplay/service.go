@@ -10,8 +10,10 @@
 package tocdisplay
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/settings"
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
 )
@@ -28,10 +30,17 @@ type Service struct {
 }
 
 // New returns a Service whose flag is read from (and written back to)
-// <storageDir>/toc-display.json. The initial value is whatever the file
-// currently holds; a missing file means disabled.
-func New(storageDir string) (*Service, error) {
-	st, err := settings.New(storageDir, "toc-display.json", 0o600, fileConfig{}, nil)
+// <storageDir>/toc-display.json — or the Postgres settings table when pg is
+// set (ADR-0018). The initial value is whatever the store currently holds;
+// a missing file or row means disabled.
+func New(storageDir string, pg *pgxpool.Pool) (*Service, error) {
+	var st *settings.Store[fileConfig]
+	var err error
+	if pg != nil {
+		st, err = settings.NewPG(context.Background(), pg, "toc-display", fileConfig{}, nil)
+	} else {
+		st, err = settings.New(storageDir, "toc-display.json", 0o600, fileConfig{}, nil)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to read toc-display config: %w", err)
 	}

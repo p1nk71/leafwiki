@@ -9,9 +9,9 @@ import (
 
 func TestBrandingStore_New_WhenConfigMissing_ReturnsDefault(t *testing.T) {
 	dir := t.TempDir()
-	store, err := NewBrandingStore(dir)
+	store, err := NewBrandingStore(dir, nil)
 	if err != nil {
-		t.Fatalf("NewBrandingStore() error: %v", err)
+		t.Fatalf("NewBrandingStore(, nil) error: %v", err)
 	}
 
 	cfg := store.Load()
@@ -41,9 +41,9 @@ func TestBrandingStore_New_WhenConfigMissing_ReturnsDefault(t *testing.T) {
 
 func TestBrandingStore_SaveThenLoad_RoundTrip_PersistsFields(t *testing.T) {
 	dir := t.TempDir()
-	store, err := NewBrandingStore(dir)
+	store, err := NewBrandingStore(dir, nil)
 	if err != nil {
-		t.Fatalf("NewBrandingStore() error: %v", err)
+		t.Fatalf("NewBrandingStore(, nil) error: %v", err)
 	}
 
 	cfg := DefaultBrandingConfig()
@@ -76,9 +76,9 @@ func TestBrandingStore_SaveThenLoad_RoundTrip_PersistsFields(t *testing.T) {
 	}
 
 	// And it survives reopening the store from disk too.
-	reopened, err := NewBrandingStore(dir)
+	reopened, err := NewBrandingStore(dir, nil)
 	if err != nil {
-		t.Fatalf("second NewBrandingStore() error: %v", err)
+		t.Fatalf("second NewBrandingStore(, nil) error: %v", err)
 	}
 	if got := reopened.Load(); got.SiteName != "MyWiki" {
 		t.Fatalf("expected persisted SiteName %q after reopen, got %q", "MyWiki", got.SiteName)
@@ -87,9 +87,9 @@ func TestBrandingStore_SaveThenLoad_RoundTrip_PersistsFields(t *testing.T) {
 
 func TestBrandingStore_Save_WritesFileToExpectedLocation(t *testing.T) {
 	dir := t.TempDir()
-	store, err := NewBrandingStore(dir)
+	store, err := NewBrandingStore(dir, nil)
 	if err != nil {
-		t.Fatalf("NewBrandingStore() error: %v", err)
+		t.Fatalf("NewBrandingStore(, nil) error: %v", err)
 	}
 
 	cfg := DefaultBrandingConfig()
@@ -124,7 +124,7 @@ func TestBrandingStore_New_WhenInvalidJSON_ReturnsError(t *testing.T) {
 		t.Fatalf("setup write invalid json: %v", err)
 	}
 
-	_, err := NewBrandingStore(dir)
+	_, err := NewBrandingStore(dir, nil)
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
@@ -147,9 +147,9 @@ func TestBrandingStore_New_InsertsConstraintsEvenIfZeroInFile(t *testing.T) {
 		t.Fatalf("setup write json: %v", err)
 	}
 
-	store, err := NewBrandingStore(dir)
+	store, err := NewBrandingStore(dir, nil)
 	if err != nil {
-		t.Fatalf("NewBrandingStore() error: %v", err)
+		t.Fatalf("NewBrandingStore(, nil) error: %v", err)
 	}
 	got := store.Load()
 
@@ -164,9 +164,9 @@ func TestBrandingStore_New_InsertsConstraintsEvenIfZeroInFile(t *testing.T) {
 
 func TestBrandingStore_Reload_PicksUpExternalFileChange(t *testing.T) {
 	dir := t.TempDir()
-	store, err := NewBrandingStore(dir)
+	store, err := NewBrandingStore(dir, nil)
 	if err != nil {
-		t.Fatalf("NewBrandingStore() error: %v", err)
+		t.Fatalf("NewBrandingStore(, nil) error: %v", err)
 	}
 
 	// Simulate a restore swapping in a different branding.json out from

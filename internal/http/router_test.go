@@ -3474,7 +3474,7 @@ func TestReadRouteAccessMatrix(t *testing.T) {
 // on it.
 func routerWithPublicAccess(t *testing.T, w *wiki.Wiki, svc *publicaccess.Service) *gin.Engine {
 	t.Helper()
-	tocSvc, err := tocdisplay.New(t.TempDir())
+	tocSvc, err := tocdisplay.New(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("tocdisplay.New: %v", err)
 	}
@@ -3490,7 +3490,7 @@ func routerWithPublicAccess(t *testing.T, w *wiki.Wiki, svc *publicaccess.Servic
 // unrelated throwaway — these tests don't assert on it.
 func routerWithTocDisplay(t *testing.T, w *wiki.Wiki, svc *tocdisplay.Service) *gin.Engine {
 	t.Helper()
-	paSvc, err := publicaccess.NewSettingsManaged(t.TempDir())
+	paSvc, err := publicaccess.NewSettingsManaged(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("publicaccess.NewSettingsManaged: %v", err)
 	}
@@ -3514,7 +3514,7 @@ func anonStatus(router http.Handler, method, path string) int {
 func TestPublicAccessToggle_SettingsManaged_FlipsReadAccessOnTheSameEngine(t *testing.T) {
 	w := createWikiTestInstance(t)
 	defer test_utils.WrapCloseWithErrorCheck(w.Close, t)
-	svc, err := publicaccess.NewSettingsManaged(t.TempDir())
+	svc, err := publicaccess.NewSettingsManaged(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged: %v", err)
 	}
@@ -3546,7 +3546,7 @@ func TestPublicAccessToggle_SettingsManaged_FlipsReadAccessOnTheSameEngine(t *te
 func TestPublicAccessToggle_ConfigEndpointReflectsTheChange(t *testing.T) {
 	w := createWikiTestInstance(t)
 	defer test_utils.WrapCloseWithErrorCheck(w.Close, t)
-	svc, err := publicaccess.NewSettingsManaged(t.TempDir())
+	svc, err := publicaccess.NewSettingsManaged(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged: %v", err)
 	}
@@ -3602,7 +3602,7 @@ func TestPublicAccessToggle_EnvManaged_Returns409AndDoesNotChange(t *testing.T) 
 func TestPublicAccessToggle_RequiresAdmin(t *testing.T) {
 	w := createWikiTestInstance(t)
 	defer test_utils.WrapCloseWithErrorCheck(w.Close, t)
-	svc, err := publicaccess.NewSettingsManaged(t.TempDir())
+	svc, err := publicaccess.NewSettingsManaged(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged: %v", err)
 	}
@@ -3625,7 +3625,7 @@ func TestPublicAccessToggle_RequiresAdmin(t *testing.T) {
 func TestPublicAccessToggle_BadPayload_Returns400(t *testing.T) {
 	w := createWikiTestInstance(t)
 	defer test_utils.WrapCloseWithErrorCheck(w.Close, t)
-	svc, err := publicaccess.NewSettingsManaged(t.TempDir())
+	svc, err := publicaccess.NewSettingsManaged(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged: %v", err)
 	}
@@ -3642,7 +3642,7 @@ func TestPublicAccessToggle_BadPayload_Returns400(t *testing.T) {
 func TestTocDisplayToggle_ConfigEndpointReflectsTheChangeOnTheSameEngine(t *testing.T) {
 	w := createWikiTestInstance(t)
 	defer test_utils.WrapCloseWithErrorCheck(w.Close, t)
-	svc, err := tocdisplay.New(t.TempDir())
+	svc, err := tocdisplay.New(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("tocdisplay.New: %v", err)
 	}
@@ -3688,7 +3688,7 @@ func TestTocDisplayToggle_ConfigEndpointReflectsTheChangeOnTheSameEngine(t *test
 func TestTocDisplayToggle_RequiresAdmin(t *testing.T) {
 	w := createWikiTestInstance(t)
 	defer test_utils.WrapCloseWithErrorCheck(w.Close, t)
-	svc, err := tocdisplay.New(t.TempDir())
+	svc, err := tocdisplay.New(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("tocdisplay.New: %v", err)
 	}
@@ -3711,7 +3711,7 @@ func TestTocDisplayToggle_RequiresAdmin(t *testing.T) {
 func TestTocDisplayToggle_BadPayload_Returns400(t *testing.T) {
 	w := createWikiTestInstance(t)
 	defer test_utils.WrapCloseWithErrorCheck(w.Close, t)
-	svc, err := tocdisplay.New(t.TempDir())
+	svc, err := tocdisplay.New(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("tocdisplay.New: %v", err)
 	}

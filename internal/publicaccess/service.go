@@ -16,9 +16,11 @@
 package publicaccess
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/settings"
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
 )
@@ -45,10 +47,17 @@ func NewEnvManaged(enabled bool) *Service {
 }
 
 // NewSettingsManaged returns a Service whose flag is read from (and written
-// back to) <storageDir>/public-access.json. The initial value is whatever the
-// file currently holds; a missing file means disabled.
-func NewSettingsManaged(storageDir string) (*Service, error) {
-	st, err := settings.New(storageDir, "public-access.json", 0o600, fileConfig{}, nil)
+// back to) <storageDir>/public-access.json — or the Postgres settings table
+// when pg is set (ADR-0018). The initial value is whatever the store
+// currently holds; a missing file or row means disabled.
+func NewSettingsManaged(storageDir string, pg *pgxpool.Pool) (*Service, error) {
+	var st *settings.Store[fileConfig]
+	var err error
+	if pg != nil {
+		st, err = settings.NewPG(context.Background(), pg, "public-access", fileConfig{}, nil)
+	} else {
+		st, err = settings.New(storageDir, "public-access.json", 0o600, fileConfig{}, nil)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to read public-access config: %w", err)
 	}

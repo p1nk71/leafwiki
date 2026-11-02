@@ -9,6 +9,7 @@ import (
 	"sync"
 	"unicode"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/shared"
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
 )
@@ -25,8 +26,8 @@ type BrandingService struct {
 }
 
 // NewBrandingService creates a new branding service
-func NewBrandingService(storageDir string) (*BrandingService, error) {
-	store, err := NewBrandingStore(storageDir)
+func NewBrandingService(storageDir string, pg *pgxpool.Pool) (*BrandingService, error) {
+	store, err := NewBrandingStore(storageDir, pg)
 	if err != nil {
 		return nil, err
 	}

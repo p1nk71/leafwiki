@@ -245,7 +245,7 @@ func (w *Wiki) initSearch() error {
 
 func (w *Wiki) initBranding() error {
 	var err error
-	w.branding, err = branding.NewBrandingService(w.storageDir)
+	w.branding, err = branding.NewBrandingService(w.storageDir, w.pg)
 	if err != nil {
 		return fmt.Errorf("failed to init branding service: %w", err)
 	}

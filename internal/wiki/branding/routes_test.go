@@ -14,9 +14,9 @@ import (
 func newTestRoutes(t *testing.T) (*Routes, *corebranding.BrandingConfigResponse) {
 	t.Helper()
 
-	svc, err := corebranding.NewBrandingService(t.TempDir())
+	svc, err := corebranding.NewBrandingService(t.TempDir(), nil)
 	if err != nil {
-		t.Fatalf("NewBrandingService() error: %v", err)
+		t.Fatalf("NewBrandingService(, nil) error: %v", err)
 	}
 
 	cfg, err := svc.GetBranding()

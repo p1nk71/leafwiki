@@ -1,9 +1,11 @@
 package branding
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/settings"
 )
 
@@ -17,9 +19,16 @@ type BrandingStore struct {
 
 // NewBrandingStore creates a new branding store, loading whatever is
 // currently on disk (or DefaultBrandingConfig if branding.json doesn't exist
-// yet).
-func NewBrandingStore(storageDir string) (*BrandingStore, error) {
-	st, err := settings.New(storageDir, "branding.json", 0o644, *DefaultBrandingConfig(), injectBrandingConstraints)
+// yet). With pg set the config row lives in the Postgres settings table
+// instead (ADR-0018); image files stay on disk under storageDir.
+func NewBrandingStore(storageDir string, pg *pgxpool.Pool) (*BrandingStore, error) {
+	var st *settings.Store[BrandingConfig]
+	var err error
+	if pg != nil {
+		st, err = settings.NewPG(context.Background(), pg, "branding", *DefaultBrandingConfig(), injectBrandingConstraints)
+	} else {
+		st, err = settings.New(storageDir, "branding.json", 0o644, *DefaultBrandingConfig(), injectBrandingConstraints)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to load branding config: %w", err)
 	}

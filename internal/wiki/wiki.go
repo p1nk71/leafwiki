@@ -106,7 +106,7 @@ const SYSTEM_USER_ID = "system"
 
 type WikiOptions struct {
 	StorageDir              string        // Path to storage directory
-	DatabaseURL             string        // PostgreSQL URL for canonical state (ADR-0018); empty keeps file/SQLite storage
+	PG                      *pgxpool.Pool // PostgreSQL pool for canonical state (ADR-0018); nil keeps file/SQLite storage
 	AdminUsername           string        // Initial admin username (optional; defaults to "admin")
 	AdminEmail              string        // Initial admin email (optional; defaults to "admin@localhost")
 	AdminPassword           string        // Initial admin password

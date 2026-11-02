@@ -69,17 +69,17 @@ func newManagerFixtureWithBranding(t *testing.T, wikiVersion, brandingJSON strin
 	sessions := auth.NewSessionManager(sessionStore, "test-secret-key-for-unit-tests-1", time.Hour, 24*time.Hour)
 	authService := auth.NewAuthService(auth.NewUserService(userStore), sessions, nil)
 
-	brandingService, err := branding.NewBrandingService(dataDir)
+	brandingService, err := branding.NewBrandingService(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewBrandingService failed: %v", err)
 	}
 
 	// Live instance has both settings off; the snapshot has both on.
-	publicAccessService, err := publicaccess.NewSettingsManaged(dataDir)
+	publicAccessService, err := publicaccess.NewSettingsManaged(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewSettingsManaged failed: %v", err)
 	}
-	tocDisplayService, err := tocdisplay.New(dataDir)
+	tocDisplayService, err := tocdisplay.New(dataDir, nil)
 	if err != nil {
 		t.Fatalf("tocdisplay.New failed: %v", err)
 	}
@@ -181,7 +181,7 @@ func newFullManagerFixtureWithBranding(t *testing.T, brandingJSON string) *fullM
 	userSettingsService := usersettings.NewUserSettingsService(userSettingsStore)
 	t.Cleanup(func() { _ = userSettingsService.Close() })
 
-	brandingService, err := branding.NewBrandingService(dataDir)
+	brandingService, err := branding.NewBrandingService(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewBrandingService failed: %v", err)
 	}
@@ -348,7 +348,7 @@ func TestManager_Restore_ByID_DoesNotEnforceUploadExtractionCaps(t *testing.T) {
 	sessions := auth.NewSessionManager(sessionStore, "test-secret-key-for-unit-tests-1", time.Hour, 24*time.Hour)
 	authService := auth.NewAuthService(auth.NewUserService(userStore), sessions, nil)
 	t.Cleanup(func() { _ = authService.Close() })
-	brandingService, err := branding.NewBrandingService(dataDir)
+	brandingService, err := branding.NewBrandingService(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewBrandingService failed: %v", err)
 	}
@@ -1107,7 +1107,7 @@ func TestManager_Restore_HappyPath_PreservesAPIKeys(t *testing.T) {
 	apiKeyService := auth.NewAPIKeyService(apiKeyStore, authService)
 	t.Cleanup(func() { _ = apiKeyService.Close() })
 
-	brandingService, err := branding.NewBrandingService(dataDir)
+	brandingService, err := branding.NewBrandingService(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewBrandingService failed: %v", err)
 	}
@@ -1201,7 +1201,7 @@ func TestManager_Restore_HappyPath_PreservesFavoritesAndUserSettings(t *testing.
 	userSettingsService := usersettings.NewUserSettingsService(userSettingsStore)
 	t.Cleanup(func() { _ = userSettingsService.Close() })
 
-	brandingService, err := branding.NewBrandingService(dataDir)
+	brandingService, err := branding.NewBrandingService(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewBrandingService failed: %v", err)
 	}
@@ -1297,7 +1297,7 @@ func TestManager_Restore_HappyPath_ReloadsUserResolverCache(t *testing.T) {
 		t.Fatalf("failed to pre-populate resolver cache for live admin: %v", err)
 	}
 
-	brandingService, err := branding.NewBrandingService(dataDir)
+	brandingService, err := branding.NewBrandingService(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewBrandingService failed: %v", err)
 	}

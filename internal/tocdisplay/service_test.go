@@ -10,7 +10,7 @@ import (
 )
 
 func TestService_NoFile_DisabledByDefault(t *testing.T) {
-	svc, err := New(t.TempDir())
+	svc, err := New(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -22,7 +22,7 @@ func TestService_NoFile_DisabledByDefault(t *testing.T) {
 func TestService_SetAlwaysShow_PersistsAcrossReconstruction(t *testing.T) {
 	dir := t.TempDir()
 
-	svc, err := New(dir)
+	svc, err := New(dir, nil)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -33,7 +33,7 @@ func TestService_SetAlwaysShow_PersistsAcrossReconstruction(t *testing.T) {
 		t.Fatal("expected AlwaysShow() true right after SetAlwaysShow(true)")
 	}
 
-	reopened, err := New(dir)
+	reopened, err := New(dir, nil)
 	if err != nil {
 		t.Fatalf("New (reopen): %v", err)
 	}
@@ -44,7 +44,7 @@ func TestService_SetAlwaysShow_PersistsAcrossReconstruction(t *testing.T) {
 	if err := reopened.SetAlwaysShow(false); err != nil {
 		t.Fatalf("SetAlwaysShow(false): %v", err)
 	}
-	again, err := New(dir)
+	again, err := New(dir, nil)
 	if err != nil {
 		t.Fatalf("New (reopen 2): %v", err)
 	}
@@ -55,7 +55,7 @@ func TestService_SetAlwaysShow_PersistsAcrossReconstruction(t *testing.T) {
 
 func TestService_SetAlwaysShow_WritesModeSixHundredJSON(t *testing.T) {
 	dir := t.TempDir()
-	svc, err := New(dir)
+	svc, err := New(dir, nil)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestService_SetAlwaysShow_WritesModeSixHundredJSON(t *testing.T) {
 
 func TestService_Reload_PicksUpExternalFileChange(t *testing.T) {
 	dir := t.TempDir()
-	svc, err := New(dir)
+	svc, err := New(dir, nil)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -120,13 +120,13 @@ func TestService_Load_CorruptFileIsAnError(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "toc-display.json"), []byte("not json"), 0o600); err != nil {
 		t.Fatalf("write corrupt file: %v", err)
 	}
-	if _, err := New(dir); err == nil {
+	if _, err := New(dir, nil); err == nil {
 		t.Fatal("expected New to fail on an unparseable toc-display.json")
 	}
 }
 
 func TestService_ConcurrentAccess_IsRaceFree(t *testing.T) {
-	svc, err := New(t.TempDir())
+	svc, err := New(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
