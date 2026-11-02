@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/avatar"
 	"github.com/perber/wiki/internal/branding"
 	"github.com/perber/wiki/internal/core/assets"
@@ -63,6 +64,7 @@ type Wiki struct {
 	searchIndex       *search.SQLiteIndex
 	status            *search.IndexingStatus
 	storageDir        string
+	pg                *pgxpool.Pool
 
 	// Domain route registrars (populated by NewWiki).
 	pagesRoutes            *wikipages.Routes
@@ -104,6 +106,7 @@ const SYSTEM_USER_ID = "system"
 
 type WikiOptions struct {
 	StorageDir              string        // Path to storage directory
+	DatabaseURL             string        // PostgreSQL URL for canonical state (ADR-0018); empty keeps file/SQLite storage
 	AdminUsername           string        // Initial admin username (optional; defaults to "admin")
 	AdminEmail              string        // Initial admin email (optional; defaults to "admin@localhost")
 	AdminPassword           string        // Initial admin password
@@ -145,6 +148,9 @@ func NewWiki(options *WikiOptions) (*Wiki, error) {
 }
 
 func (w *Wiki) boot(options *WikiOptions) error {
+	if err := w.initPostgres(options); err != nil {
+		return err
+	}
 	if err := w.initAuth(options); err != nil {
 		return err
 	}
@@ -361,6 +367,10 @@ func (w *Wiki) Close() error {
 		if err := w.searchIndex.Close(); err != nil {
 			errs = append(errs, fmt.Errorf("close search index: %w", err))
 		}
+	}
+
+	if w.pg != nil {
+		w.pg.Close()
 	}
 
 	return errors.Join(errs...)

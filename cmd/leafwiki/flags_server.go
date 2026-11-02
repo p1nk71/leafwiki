@@ -8,6 +8,7 @@ type serverOptions struct {
 	port              string
 	unixSocket        string
 	dataDir           string
+	databaseURL       string
 	basePath          string
 	publicURL         string
 	allowInsecure     bool
@@ -55,6 +56,14 @@ func (o *serverOptions) Flags() []cli.Flag {
 			Usage:       "path to data directory",
 			Value:       "./data",
 			Sources:     envVars("LEAFWIKI_DATA_DIR"),
+			Config:      trimmed,
+		},
+		&cli.StringFlag{
+			Name:        "database-url",
+			Destination: &o.databaseURL,
+			Category:    catServer,
+			Usage:       "PostgreSQL connection URL for canonical state; derived indexes stay on local scratch storage (see ADR-0018)",
+			Sources:     envVars("LEAFWIKI_DATABASE_URL"),
 			Config:      trimmed,
 		},
 		&cli.StringFlag{

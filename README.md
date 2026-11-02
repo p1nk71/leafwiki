@@ -354,6 +354,7 @@ For plain HTTP: add `--allow-insecure=true` so login and CSRF cookies work.
 | `--port`                         | Port the server listens on                                              | `8080`        | –       |
 | `--unix-socket`                  | Unix domain socket path; overrides `--host` and `--port`                | `""`          | v0.11.3 |
 | `--data-dir`                     | Directory where data is stored                                          | `./data`      | –       |
+| `--database-url`                 | PostgreSQL connection URL for canonical state (fork mode, ADR-0018)      | `""`          | –       |
 | `--admin-username`               | Initial admin username (only applied if no admin exists yet)            | `admin`       | v0.12.0 |
 | `--admin-email`                  | Initial admin email (only applied if no admin exists yet)               | `admin@localhost` | v0.12.0 |
 | `--public-access`                | Allow public read-only access                                           | `false`       | –       |
@@ -425,6 +426,7 @@ For plain HTTP: add `--allow-insecure=true` so login and CSRF cookies work.
 | `LEAFWIKI_PORT`                         | Port                                                 | `8080`        | –       |
 | `LEAFWIKI_UNIX_SOCKET`                  | Unix domain socket path; overrides host/port         | `""`          | v0.11.3 |
 | `LEAFWIKI_DATA_DIR`                     | Data directory path                                  | `./data`      | –       |
+| `LEAFWIKI_DATABASE_URL`                 | PostgreSQL connection URL for canonical state        | `""`          | –       |
 | `LEAFWIKI_ADMIN_PASSWORD`               | Initial admin password *(required)*                  | –             | –       |
 | `LEAFWIKI_ADMIN_USERNAME`               | Initial admin username (only applied if no admin exists yet) | `admin`       | v0.12.0 |
 | `LEAFWIKI_ADMIN_EMAIL`                  | Initial admin email (only applied if no admin exists yet) | `admin@localhost` | v0.12.0 |

@@ -249,6 +249,7 @@ func runServerCommand(_ context.Context, cmd *cli.Command, cfg *serverConfig) er
 
 	w, err := wiki.NewWiki(&wiki.WikiOptions{
 		StorageDir:             cfg.server.dataDir,
+		DatabaseURL:            cfg.server.databaseURL,
 		AdminUsername:          cfg.auth.adminUsername,
 		AdminEmail:             cfg.auth.adminEmail,
 		AdminPassword:          cfg.auth.adminPassword,
