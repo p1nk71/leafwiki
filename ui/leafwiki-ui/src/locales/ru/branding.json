@@ -1,0 +1,48 @@
+{
+  "pageTitle": "Настройки брендинга",
+  "storeErrors": {
+    "loadFallback": "Не удалось загрузить брендинг",
+    "updateFallback": "Не удалось обновить брендинг",
+    "uploadLogoFallback": "Не удалось загрузить логотип",
+    "uploadFaviconFallback": "Не удалось загрузить favicon",
+    "deleteLogoFallback": "Не удалось удалить логотип",
+    "deleteFaviconFallback": "Не удалось удалить favicon"
+  },
+  "siteName": {
+    "title": "Название сайта",
+    "description": "Название, отображаемое в шапке, заголовках страниц и на экране входа.",
+    "label": "Название сайта",
+    "placeholder": "LeafWiki"
+  },
+  "logo": {
+    "title": "Логотип",
+    "description": "Логотип, отображаемый в шапке рядом с названием сайта.",
+    "currentLabel": "Текущий логотип:",
+    "noLogo": "Логотип не загружен",
+    "uploadLabel": "Загрузить логотип",
+    "uploadButton": "Загрузить изображение",
+    "hint": "Поддерживаются {{exts}}, максимальный размер {{size}} МБ"
+  },
+  "favicon": {
+    "title": "Favicon",
+    "description": "Значок, отображаемый во вкладке браузера.",
+    "currentLabel": "Текущий favicon:",
+    "noFavicon": "Используется favicon по умолчанию",
+    "uploadLabel": "Загрузить favicon",
+    "uploadButton": "Загрузить favicon",
+    "hint": "Поддерживаются {{exts}}, максимальный размер {{size}} МБ"
+  },
+  "save": "Сохранить настройки",
+  "toast": {
+    "logoDeleted": "Логотип удалён",
+    "logoDeleteFailed": "Не удалось удалить логотип",
+    "faviconDeleted": "Favicon удалён",
+    "faviconDeleteFailed": "Не удалось удалить favicon",
+    "brandingSaved": "Настройки брендинга сохранены",
+    "brandingSaveFailed": "Не удалось сохранить настройки брендинга",
+    "logoUploaded": "Логотип загружен",
+    "logoUploadFailed": "Не удалось загрузить логотип",
+    "faviconUploaded": "Favicon загружен",
+    "faviconUploadFailed": "Не удалось загрузить favicon"
+  }
+}

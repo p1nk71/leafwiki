@@ -43,6 +43,8 @@
     "backlinksLoading": "Es wird geprüft, welche Seiten auf diese Seite verweisen...",
     "backlinksError": "Seitenverweise konnten nicht geladen werden. Das Löschen funktioniert weiterhin, die Auswirkung auf Links konnte jedoch nicht angezeigt werden.",
     "backlinksWarning_one": "Auf diese Seite verweist {{count}} Seite.",
+    "backlinksWarning_few": "Auf diese Seite verweisen {{count}} Seiten.",
+    "backlinksWarning_many": "Auf diese Seite verweisen {{count}} Seiten.",
     "backlinksWarning_other": "Auf diese Seite verweisen {{count}} Seiten.",
     "backlinksWarningBody": "Das Löschen dieser Seite hinterlässt dort defekte Links.",
     "noBacklinks": "Derzeit verweist keine Seite auf diese Seite.",

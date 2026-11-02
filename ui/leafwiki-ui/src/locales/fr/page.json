@@ -43,6 +43,8 @@
     "backlinksLoading": "Vérification des pages qui référencent cette page…",
     "backlinksError": "Impossible de charger les références de la page. La suppression fonctionnera quand même, mais l'impact sur les liens n'a pas pu être affiché.",
     "backlinksWarning_one": "Cette page est référencée par {{count}} page.",
+    "backlinksWarning_few": "Cette page est référencée par {{count}} pages.",
+    "backlinksWarning_many": "Cette page est référencée par {{count}} pages.",
     "backlinksWarning_other": "Cette page est référencée par {{count}} pages.",
     "backlinksWarningBody": "Supprimer cette page laissera ces liens brisés.",
     "noBacklinks": "Aucune page ne référence actuellement cette page.",

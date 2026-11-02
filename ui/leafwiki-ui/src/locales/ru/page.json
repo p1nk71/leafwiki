@@ -1,0 +1,131 @@
+{
+  "common": {
+    "page": "страница",
+    "section": "раздел",
+    "pageCapitalized": "Страница",
+    "sectionCapitalized": "Раздел",
+    "cancel": "Отмена",
+    "errorPrefix": "Ошибка: {{error}}",
+    "unknownError": "Произошла неизвестная ошибка"
+  },
+  "addDialog": {
+    "slugNotGenerated": "Не удалось сгенерировать слаг. Введите его вручную.",
+    "slugStillGenerating": "Подождите, пока слаг будет сгенерирован.",
+    "createdToast": "Создано: {{item}}",
+    "createErrorFallback": "Ошибка создания — {{item}}",
+    "create": "Создать",
+    "createAndEdit": "Создать и редактировать — {{item}}",
+    "titlePage": "Создать новую страницу",
+    "titleSection": "Создать новый раздел",
+    "descriptionPage": "Введите заголовок новой страницы",
+    "descriptionSection": "Введите заголовок нового раздела",
+    "titleLabel": "Заголовок",
+    "titlePlaceholder": "Заголовок — {{item}}",
+    "pathPrefix": "Путь:"
+  },
+  "moveDialog": {
+    "movedToast": "Страница перемещена",
+    "moveErrorFallback": "Ошибка перемещения — {{item}}",
+    "title": "Переместить — {{item}}",
+    "description": "{{item}}: выберите новую родительскую страницу",
+    "move": "Переместить"
+  },
+  "deleteDialog": {
+    "loadReferencesErrorFallback": "Не удалось загрузить ссылки на страницу",
+    "deletedToast": "Удалено: {{item}}",
+    "deleteErrorFallback": "Ошибка удаления — {{item}}",
+    "title": "Удалить — {{item}}?",
+    "description": "Удалить — {{item}} «{{name}}»? Это действие нельзя отменить.",
+    "deleting": "Удаление…",
+    "delete": "Удалить",
+    "modifiedWarningTitle": "Эта страница была изменена другим пользователем.",
+    "modifiedWarningBody": "Страница была обновлена. Вы всё ещё хотите её удалить?",
+    "backlinksLoading": "Проверяем, какие страницы ссылаются на эту…",
+    "backlinksError": "Не удалось загрузить ссылки на страницу. Удаление всё равно сработает, но влияние на ссылки показать нельзя.",
+    "backlinksWarning_one": "На эту страницу ссылается {{count}} страница.",
+    "backlinksWarning_few": "На эту страницу ссылаются {{count}} страницы.",
+    "backlinksWarning_many": "На эту страницу ссылается {{count}} страниц.",
+    "backlinksWarning_other": "На эту страницу ссылаются {{count}} страницы.",
+    "backlinksWarningBody": "Удаление этой страницы оставит эти ссылки битыми.",
+    "noBacklinks": "На эту страницу сейчас никто не ссылается.",
+    "deleteSubpages": "Также удалить все подстраницы"
+  },
+  "sortDialog": {
+    "dragToReorder": "Перетащите для изменения порядка",
+    "sortedToast": "{{item}}: дочерние элементы отсортированы",
+    "sortErrorFallback": "Ошибка сортировки дочерних элементов — {{item}}",
+    "title": "Сортировка дочерних элементов — {{item}}",
+    "description": "Перетаскивайте элементы для изменения порядка, используйте стрелки или выберите вариант сортировки. Изменения сохраняются после нажатия «Сохранить».",
+    "save": "Сохранить",
+    "sortAlphabetically": "Сортировать по алфавиту:",
+    "ascending": "А → Я",
+    "descending": "Я → А",
+    "sortSections": "Группировать разделы:",
+    "sectionsFirst": "Сначала разделы",
+    "sectionsLast": "Разделы в конце"
+  },
+  "copyDialog": {
+    "slugNotGenerated": "Не удалось сгенерировать слаг. Введите его вручную.",
+    "slugStillGenerating": "Подождите, пока слаг будет сгенерирован.",
+    "copiedToast": "Скопировано: {{item}}",
+    "copyErrorFallback": "Ошибка копирования — {{item}}",
+    "copyOfTitle": "Копия — {{title}}",
+    "title": "Скопировать — {{item}}",
+    "description": "Создать копию — {{item}}",
+    "copying": "Копирование…",
+    "copyAndEdit": "Скопировать и редактировать — {{item}}",
+    "titleLabel": "Заголовок",
+    "titlePlaceholder": "Заголовок — {{item}}",
+    "pathPrefix": "Путь:"
+  },
+  "permalinkDialog": {
+    "copyErrorToast": "Не удалось скопировать постоянную ссылку",
+    "copiedToast": "Постоянная ссылка скопирована",
+    "title": "Поделиться страницей",
+    "description": "Постоянная ссылка на {{title}}",
+    "close": "Закрыть",
+    "urlLabel": "Постоянная ссылка",
+    "copyLink": "Скопировать ссылку",
+    "openLink": "Открыть ссылку",
+    "purposeNote": "Это постоянная внутренняя ссылка. Она продолжает работать даже после переименования или перемещения страницы, поэтому её можно безопасно сохранять в закладки или использовать в других страницах.",
+    "accessNote": "Это не публичная ссылка. Тот, кому вы её отправите, всё равно должен войти в эту вики, чтобы открыть её — если только вся вики не переведена в публичный доступ. LeafWiki не может сделать публичной отдельную страницу, когда остальные остаются приватными."
+  },
+  "createByPathDialog": {
+    "createdToast": "Страница создана",
+    "createErrorFallback": "Ошибка создания страницы",
+    "title": "Создать новую страницу",
+    "description": "Введите заголовок",
+    "creating": "Создание…",
+    "create": "Создать",
+    "createAndEdit": "Создать и редактировать",
+    "existsAlert": "По этому пути страница уже существует.",
+    "lookupResultTitle": "Результат проверки пути:",
+    "segmentExists": "существует",
+    "segmentWillBeCreated": "будет создан",
+    "titleLabel": "Заголовок",
+    "titlePlaceholder": "Заголовок страницы",
+    "pathLabel": "Путь",
+    "pathPlaceholder": "Путь страницы"
+  },
+  "select": {
+    "topLevel": "Верхний уровень",
+    "searchPlaceholder": "Поиск страниц…",
+    "searchAriaLabel": "Поиск страниц",
+    "noPagesFound": "Страницы не найдены.",
+    "pagesAriaLabel": "Страницы"
+  },
+  "refactorDialog": {
+    "title": "Обновить ссылки?",
+    "description": "Это изменение затрагивает путь страницы. Проверьте затронутые страницы, прежде чем продолжить.",
+    "saveWithoutRewrite": "Сохранить без обновления ссылок",
+    "continue": "Продолжить",
+    "oldPath": "Старый путь:",
+    "newPath": "Новый путь:",
+    "updateLinksLabel": "Автоматически обновить ссылки на ссылающихся страницах",
+    "referencingPages": "Ссылающиеся страницы ({{count}})",
+    "noReferences": "На этот путь не ссылается ни одна страница."
+  },
+  "historyPage": {
+    "backToPage": "Назад к странице"
+  }
+}

@@ -10,6 +10,7 @@ var allowedLanguages = map[string]bool{
 	"de":            true,
 	"es":            true,
 	"fr":            true,
+	"ru":            true,
 	"zh":            true,
 }
 

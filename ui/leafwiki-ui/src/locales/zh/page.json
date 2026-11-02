@@ -43,6 +43,8 @@
     "backlinksLoading": "正在检查哪些页面引用此页…",
     "backlinksError": "无法加载页面引用。删除仍可进行，但无法显示链接影响。",
     "backlinksWarning_one": "此页被 {{count}} 个页面引用。",
+    "backlinksWarning_few": "此页被 {{count}} 个页面引用。",
+    "backlinksWarning_many": "此页被 {{count}} 个页面引用。",
     "backlinksWarning_other": "此页被 {{count}} 个页面引用。",
     "backlinksWarningBody": "删除此页会使这些链接失效。",
     "noBacklinks": "当前没有页面引用此页。",

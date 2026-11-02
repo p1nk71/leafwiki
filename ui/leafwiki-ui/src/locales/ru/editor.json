@@ -1,0 +1,132 @@
+{
+  "wikiLinkDisambiguation": {
+    "title": "Найдено несколько страниц",
+    "descriptionPrefix": "Подходит несколько страниц:",
+    "descriptionSuffix": ". Выберите нужную."
+  },
+  "slugInput": {
+    "label": "Слаг",
+    "placeholder": "Слаг страницы",
+    "generateErrorFallback": "Ошибка генерации слага"
+  },
+  "addPageDialog": {
+    "dateTitleTooltip": "Использовать сегодняшнюю дату как заголовок"
+  },
+  "editPageMetadataDialog": {
+    "dialogTitle": "Метаданные — {{item}}",
+    "dialogDescription": "Изменить метаданные — {{item}}",
+    "titleLabel": "Заголовок",
+    "titlePlaceholder": "Заголовок — {{item}}",
+    "pathPrefix": "Путь:",
+    "cancelButton": "Отмена",
+    "saveButton": "Изменить",
+    "dateTitleTooltip": "Использовать сегодняшнюю дату как заголовок"
+  },
+  "toolbar": {
+    "closeEditorButton": "Закрыть редактор",
+    "savePageButton": "Сохранить страницу",
+    "boldTooltip": "Жирный (Ctrl+B)",
+    "italicTooltip": "Курсив (Ctrl+I)",
+    "strikethroughTooltip": "Зачёркнутый",
+    "highlightTooltip": "Выделение",
+    "linkTooltip": "Ссылка (Ctrl+K)",
+    "heading1Tooltip": "Заголовок 1 (Ctrl+Alt+1)",
+    "heading2Tooltip": "Заголовок 2 (Ctrl+Alt+2)",
+    "heading3Tooltip": "Заголовок 3 (Ctrl+Alt+3)",
+    "tableTooltip": "Таблица",
+    "tableSizeSelect": "Выберите размер",
+    "tableSizeLabel": "{{col}} × {{row}}",
+    "tableInsertAriaLabel": "Вставить таблицу {{col}} x {{row}}",
+    "codeBlockTooltip": "Блок кода",
+    "inlineCodeTooltip": "Встроенный код (Ctrl+`)",
+    "imageTooltip": "Менеджер файлов",
+    "attachmentsButton": "Вложения",
+    "undoTooltip": "Отменить",
+    "redoTooltip": "Повторить",
+    "lineWrapEnableTooltip": "Включить перенос строк",
+    "lineWrapDisableTooltip": "Выключить перенос строк",
+    "moreOptionsAriaLabel": "Дополнительные параметры форматирования",
+    "previewSplitTooltip": "Предпросмотр рядом",
+    "previewStackedTooltip": "Предпросмотр снизу",
+    "showPreviewTooltip": "Показать предпросмотр",
+    "hidePreviewTooltip": "Скрыть предпросмотр",
+    "pasteRichTooltip": "Вставить с форматированием (Ctrl+Shift+V)",
+    "pastePlainTooltip": "Вставить без форматирования (Ctrl+V)",
+    "pasteRich": "Вставить с форматированием",
+    "pastePlain": "Вставить без форматирования",
+    "pasteClipboardError": "Не удалось прочитать содержимое буфера обмена",
+    "strikethrough": "Зачёркнутый",
+    "highlight": "Выделение",
+    "heading1": "Заголовок 1",
+    "heading2": "Заголовок 2",
+    "heading3": "Заголовок 3",
+    "insertTable": "Вставить таблицу (3×3)",
+    "lineWrap": "Перенос строк",
+    "autoSave": "Автосохранение",
+    "autoSavePaused": "приостановлено"
+  },
+  "pageEditor": {
+    "savedToast": "Страница сохранена",
+    "saveErrorFallback": "Ошибка сохранения страницы",
+    "saveAnyway": "Сохранить всё равно",
+    "conflictAgainMessage": "Страница была снова изменена во время сохранения. Перезагрузите страницу и примените изменения заново.",
+    "errorPrefix": "Ошибка: {{error}}",
+    "metadataErrorsBeforeSave": "Исправьте ошибки метаданных перед сохранением.",
+    "contentNullFallback": "Обновлённое содержимое страницы пустое или отсутствует",
+    "unknownErrorFallback": "Произошла неизвестная ошибка"
+  },
+  "linkInsertDialog": {
+    "dialogTitle": "Вставить ссылку",
+    "displayTextLabel": "Отображаемый текст",
+    "urlLabel": "URL",
+    "textPlaceholder": "Текст ссылки",
+    "urlPlaceholder": "https:// или поиск страниц…",
+    "cancelButton": "Отмена",
+    "insertButton": "Вставить"
+  },
+  "frontmatterPanel": {
+    "metadataTitle": "Метаданные",
+    "tagsHeading": "Теги",
+    "propertiesHeading": "Свойства",
+    "removeFieldAriaLabel": "Удалить поле frontmatter {{field}}",
+    "addTagPlaceholder": "Добавить тег",
+    "keyPlaceholder": "Ключ",
+    "valuePlaceholder": "Значение",
+    "internalFieldsToggle": "Внутренние поля",
+    "addPropertyButton": "Добавить свойство",
+    "flatHint": "Пока держите поля плоскими. Если позже понадобятся вложенные метаданные, используйте ключи с точкой, например <code>seo.title</code>.",
+    "unsupportedNotice": "Существующие сложные frontmatter сохраняются в фоне, но пока недоступны для редактирования в этом компактном виде."
+  },
+  "tagInput": {
+    "loading": "Загрузка…",
+    "noMatchingTags": "Подходящие теги не найдены.",
+    "removeTagAriaLabel": "Удалить тег {{tag}}"
+  },
+  "markdownEditor": {
+    "editorTab": "Редактор",
+    "previewTab": "Предпросмотр",
+    "resizeAriaLabel": "Изменить размер панелей редактора и предпросмотра",
+    "fileTooLarge": "Файл слишком большой. Максимум {{maxSize}}.",
+    "uploadedToast": "Загружено: {{filename}}",
+    "uploadErrorFallback": "Не удалось загрузить {{filename}}"
+  },
+  "autoSave": {
+    "savedToast": "Сохранено",
+    "versionConflictToast": "Автосохранение приостановлено — страница была изменена другим пользователем. Сохраните вручную, чтобы продолжить.",
+    "errorFallback": "Ошибка автосохранения"
+  },
+  "frontmatterValidation": {
+    "tagsWhitespace": "Теги не должны содержать пробелы в начале или конце.",
+    "tagsEmpty": "Теги не должны быть пустыми.",
+    "tagsUnique": "Теги должны быть уникальными.",
+    "keyEmpty": "Ключ свойства не должен быть пустым.",
+    "keyWhitespace": "Ключ свойства не должен содержать пробелы в начале или конце.",
+    "keyReservedPrefix": "Ключ свойства использует зарезервированный префикс.",
+    "keyReserved": "Ключ свойства зарезервирован.",
+    "keyUnique": "Ключ свойства должен быть уникальным.",
+    "valueType": "Значение свойства должно быть строкой, числом, булевым значением или плоским списком."
+  },
+  "titleBar": {
+    "dirtyIndicator": "(Изменения)"
+  }
+}

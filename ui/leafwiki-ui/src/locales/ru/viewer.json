@@ -1,0 +1,260 @@
+{
+  "layout": {
+    "toggleSidebar": "Переключить боковую панель",
+    "resizeSidebar": "Изменить размер боковой панели",
+    "closeSidebar": "Закрыть боковую панель"
+  },
+  "breadcrumbs": {
+    "navAriaLabel": "Хлебные крошки"
+  },
+  "section": {
+    "overviewTitle": "Обзор «{{title}}»",
+    "overviewDescriptionBase": "Эта страница — обзор раздела по умолчанию и содержит список его страниц и разделов.",
+    "overviewDescriptionEditorHint": "Редактируя эту страницу, вы можете задать собственную стартовую страницу раздела.",
+    "overviewDescriptionReadOnly": "Эта страница — автоматически сгенерированный обзор раздела.",
+    "emptyTitle": "Этот раздел пуст.",
+    "emptyDescriptionEditor": "Раздел {{title}} пока не содержит страниц и разделов. Начните с добавления новой страницы или создайте новый раздел.",
+    "emptyDescriptionReadOnly": "Раздел {{title}} пока не содержит страниц и разделов.",
+    "addPage": "Добавить страницу",
+    "addSection": "Добавить раздел",
+    "subpagesAriaLabel": "Подстраницы {{title}}",
+    "sectionSuffix": "(Раздел)",
+    "updatedByLabel": "Изменено пользователем {{editor}} · {{time}}",
+    "updatedLabel": "Изменено {{time}}"
+  },
+  "markdownPreview": {
+    "renderError": "Эта страница содержит Markdown, который невозможно безопасно отобразить.",
+    "brokenLinkTooltip": "Этой страницы ещё не существует."
+  },
+  "mermaid": {
+    "renderError": "Не удалось отобразить диаграмму Mermaid.",
+    "chunkLoadError": "Диаграмма не загрузилась, потому что доступна новая версия LeafWiki. Перезагрузите страницу, чтобы исправить.",
+    "noSvgOutput": "Нет SVG-элемента в выводе Mermaid"
+  },
+  "headline": {
+    "linkToSection": "Ссылка на раздел"
+  },
+  "backlinks": {
+    "errorPrefix": "Ошибка: {{error}}",
+    "pageIdRequired": "Требуется ID страницы",
+    "fetchFailedFallback": "Не удалось получить статус ссылок",
+    "referencedBy": "На страницу ссылаются",
+    "loading": "Загрузка…",
+    "noReferences": "На эту страницу никто не ссылается.",
+    "brokenLinks": "Битые ссылки",
+    "noBrokenLinks": "Битых ссылок нет.",
+    "brokenOutgoingsTitle": "Эта страница ссылается на отсутствующие цели",
+    "brokenIncomingTitle": "Страницы, ссылающиеся на старый путь"
+  },
+  "pinned": {
+    "sectionTitle": "Закреплённые",
+    "pagesSectionTitle": "Страницы",
+    "pinPage": "Закрепить",
+    "unpinPage": "Открепить",
+    "pinSuccess": "Страница закреплена",
+    "unpinSuccess": "Страница откреплена",
+    "pinError": "Не удалось обновить закрепление",
+    "togglePinnedSection": "Переключить раздел закреплённых страниц",
+    "togglePagesSection": "Переключить раздел страниц",
+    "unpinPageAriaLabel": "Открепить страницу"
+  },
+  "favorites": {
+    "sectionTitle": "Избранное",
+    "addFavorite": "В избранное",
+    "removeFavorite": "Убрать из избранного",
+    "addSuccess": "Добавлено в избранное",
+    "removeSuccess": "Убрано из избранного",
+    "favoriteError": "Не удалось обновить избранное",
+    "toggleFavoritesSection": "Переключить раздел избранного"
+  },
+  "toc": {
+    "title": "Оглавление",
+    "onThisPage": "На этой странице",
+    "downloads": "Прикреплённые медиа",
+    "collapse": "Свернуть оглавление",
+    "expand": "Развернуть оглавление"
+  },
+  "toolbar": {
+    "moreActions": "Ещё действия",
+    "expandAll": "Развернуть все",
+    "collapseAll": "Свернуть все",
+    "sortPages": "Сортировать страницы",
+    "refresh": "Обновить проводник",
+    "refreshSuccess": "Проводник обновлён",
+    "refreshError": "Не удалось обновить",
+    "refreshAlreadyRunning": "Обновление уже выполняется",
+    "refreshPullFailed": "Не удалось получить удалённые изменения",
+    "syncJobLostFallback": "Задание синхронизации потеряно — возможно, сервер перезапустился"
+  },
+  "pageToolbar": {
+    "itemPage": "страницы",
+    "itemSection": "раздела",
+    "editButton": "Редактирование {{item}}",
+    "shareButton": "Отправка {{item}}",
+    "printButton": "Печать {{item}}",
+    "copyButton": "Копирование {{item}}",
+    "deleteButton": "Удаление {{item}}",
+    "historyButton": "История {{item}}"
+  },
+  "treeActions": {
+    "loading": "Загрузка…",
+    "loadErrorPrefix": "Ошибка: {{error}}",
+    "createNewPageTooltip": "Создать страницу",
+    "createNewSectionTooltip": "Создать раздел",
+    "untitledPage": "Без названия",
+    "convertedToast": "Страница преобразована",
+    "conflictRetryMessage": "Эта страница была изменена другим пользователем. Попробуйте ещё раз.",
+    "convertErrorFallback": "Не удалось преобразовать страницу",
+    "renameEditingWarning": "{{item}} сейчас редактируется. Для переименования используйте заголовок редактора.",
+    "renamedToast": "{{item}}: переименование выполнено",
+    "renameErrorFallback": "Не удалось переименовать страницу",
+    "deleteEditingWarning": "{{item}} сейчас редактируется. Закройте редактор перед удалением.",
+    "menuAddPage": "Добавить страницу",
+    "menuAddSection": "Добавить раздел",
+    "menuEdit": "Изменить — {{item}}",
+    "menuRename": "Переименовать — {{item}}",
+    "menuCopyPage": "Копировать страницу",
+    "menuSortChildren": "Сортировать дочерние элементы — {{item}}",
+    "menuMove": "Переместить — {{item}}",
+    "menuConvertToPage": "Преобразовать в страницу",
+    "menuDelete": "Удалить — {{item}}",
+    "emptySectionToast": "«{{title}}» теперь пустой раздел",
+    "convertBackAction": "Преобразовать обратно в страницу",
+    "convertedBackToast": "«{{title}}» снова страница",
+    "convertBackErrorFallback": "Не удалось преобразовать раздел обратно в страницу",
+    "reorderErrorFallback": "Не удалось изменить порядок страниц",
+    "moveErrorFallback": "Не удалось переместить страницу"
+  },
+  "codeBlock": {
+    "copyErrorToast": "Не удалось скопировать код",
+    "copiedToast": "Код скопирован",
+    "copyTooltip": "Скопировать код",
+    "copiedTooltip": "Скопировано",
+    "copyAriaLabel": "Скопировать код",
+    "copiedAriaLabel": "Код скопирован"
+  },
+  "designToggle": {
+    "switchToLight": "Переключить на светлую тему",
+    "switchToDark": "Переключить на тёмную тему"
+  },
+  "imagePreview": {
+    "openInNewTab": "Открыть в новой вкладке"
+  },
+  "pdfEmbed": {
+    "defaultTitle": "PDF"
+  },
+  "pageSwitcher": {
+    "trigger": "Перейти к странице",
+    "triggerWithHotkey": "Перейти к странице ({{hotkey}})",
+    "dialogTitle": "Перейти к странице",
+    "dialogDescription": "Поиск существующих страниц по заголовку, пути или хлебным крошкам.",
+    "searchPlaceholder": "Введите заголовок страницы…",
+    "searchAriaLabel": "Поиск страниц",
+    "noMatch": "Подходящая страница не найдена.",
+    "matchingPagesAriaLabel": "Подходящие страницы"
+  },
+  "metadata": {
+    "propertiesToggle": "Свойства ({{count}})"
+  },
+  "shortcutsHelp": {
+    "menuItem": "Горячие клавиши",
+    "title": "Доступные горячие клавиши",
+    "description": "Краткий обзор клавиш для текущего режима страницы.",
+    "currentMode": "Текущий режим страницы: {{mode}}",
+    "dialogHint": "Клавиши диалогов также включены, пока этот диалог открыт.",
+    "closeButton": "Закрыть",
+    "categories": {
+      "navigation": "Навигация",
+      "editing": "Редактирование",
+      "viewing": "Просмотр",
+      "dialogs": "Диалоги"
+    },
+    "modes": {
+      "view": "просмотр",
+      "edit": "редактирование",
+      "history": "история",
+      "settings": "настройки",
+      "dialog": "диалог"
+    },
+    "items": {
+      "goToPage": {
+        "action": "Перейти к странице"
+      },
+      "openShortcutsHelp": {
+        "action": "Открыть горячие клавиши"
+      },
+      "editPage": {
+        "action": "Редактировать страницу"
+      },
+      "sharePage": {
+        "action": "Поделиться страницей"
+      },
+      "printPage": {
+        "action": "Печать страницы"
+      },
+      "copyPage": {
+        "action": "Копировать страницу"
+      },
+      "deletePage": {
+        "action": "Удалить страницу"
+      },
+      "pageHistory": {
+        "action": "История страницы"
+      },
+      "toggleToc": {
+        "action": "Переключить оглавление"
+      },
+      "openExplorer": {
+        "action": "Открыть проводник"
+      },
+      "openSearch": {
+        "action": "Открыть поиск"
+      },
+      "savePage": {
+        "action": "Сохранить страницу"
+      },
+      "closeEditor": {
+        "action": "Закрыть редактор"
+      },
+      "formatBold": {
+        "action": "Жирный шрифт"
+      },
+      "formatItalic": {
+        "action": "Курсив"
+      },
+      "insertHeadingOne": {
+        "action": "Вставить заголовок 1"
+      },
+      "insertHeadingTwo": {
+        "action": "Вставить заголовок 2"
+      },
+      "insertHeadingThree": {
+        "action": "Вставить заголовок 3"
+      },
+      "formatInlineCode": {
+        "action": "Встроенный код"
+      },
+      "insertLink": {
+        "action": "Вставить ссылку"
+      },
+      "backToPage": {
+        "action": "Назад к странице"
+      },
+      "exitSettings": {
+        "action": "Выйти из настроек"
+      },
+      "closeDialog": {
+        "action": "Закрыть диалог"
+      },
+      "confirmDialog": {
+        "action": "Действие диалога по умолчанию"
+      },
+      "confirmRename": {
+        "action": "Подтвердить переименование"
+      },
+      "cancelRename": {
+        "action": "Отменить переименование"
+      }
+    }
+  }
+}

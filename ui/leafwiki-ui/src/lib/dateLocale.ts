@@ -10,17 +10,19 @@
 // up right after i18next.init().
 
 import { setDefaultOptions } from 'date-fns'
-import { de, enUS, type Locale } from 'date-fns/locale'
+import { de, enUS, ru, type Locale } from 'date-fns/locale'
 import i18next from 'i18next'
 
 const DATE_FNS_LOCALES: Record<string, Locale> = {
   en: enUS,
   de,
+  ru,
 }
 
 const BCP47_TAGS: Record<string, string> = {
   en: 'en-US',
   de: 'de-DE',
+  ru: 'ru-RU',
 }
 
 function shortCode(lng?: string): string {

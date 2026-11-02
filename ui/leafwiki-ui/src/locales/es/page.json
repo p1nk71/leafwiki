@@ -43,6 +43,8 @@
     "backlinksLoading": "Comprobando qué páginas hacen referencia a esta página...",
     "backlinksError": "No se pudieron cargar las referencias de la página. La eliminación seguirá funcionando, pero no se pudo mostrar el impacto en los enlaces.",
     "backlinksWarning_one": "Esta página aparece referenciada en {{count}} página.",
+    "backlinksWarning_few": "Esta página aparece referenciada en {{count}} páginas.",
+    "backlinksWarning_many": "Esta página aparece referenciada en {{count}} páginas.",
     "backlinksWarning_other": "Esta página aparece referenciada en {{count}} páginas.",
     "backlinksWarningBody": "Eliminar esta página dejará esos enlaces rotos.",
     "noBacklinks": "Actualmente ninguna página hace referencia a esta página.",

@@ -1,0 +1,124 @@
+{
+  "pageTitle": "Управление пользователями",
+  "loading": "Загрузка пользователей…",
+  "loadErrorFallback": "Ошибка загрузки пользователей",
+  "noUsersFound": "Пользователи не найдены.",
+  "columns": {
+    "username": "Имя пользователя",
+    "email": "Email",
+    "role": "Роль",
+    "actions": "Действия"
+  },
+  "actions": {
+    "edit": "Изменить",
+    "new": "Новый пользователь",
+    "changePassword": "Сменить пароль",
+    "delete": "Удалить"
+  },
+  "invite": {
+    "pendingPill": "Приглашение ожидает",
+    "resendAction": "Отправить приглашение повторно",
+    "resending": "Отправка…",
+    "resendSuccessToast": "Приглашение отправлено повторно",
+    "resendErrorFallback": "Ошибка повторной отправки приглашения",
+    "emailNotSentWarning": "Пользователь создан, но письмо с приглашением не удалось отправить. Используйте «Отправить приглашение повторно», чтобы попробовать ещё раз."
+  },
+  "validation": {
+    "passwordTooShort": "Пароль должен содержать не менее 8 символов",
+    "passwordsDoNotMatch": "Пароли не совпадают"
+  },
+  "changePasswordDialog": {
+    "title": "Смена пароля для {{username}}",
+    "description": "Задайте новый пароль пользователю.",
+    "cancel": "Отмена",
+    "update": "Обновить пароль",
+    "updating": "Обновление…",
+    "newPasswordLabel": "Новый пароль",
+    "confirmPasswordLabel": "Подтвердите пароль",
+    "successToast": "Пароль изменён",
+    "errorFallback": "Ошибка обновления пароля"
+  },
+  "userForm": {
+    "editTitle": "Изменить пользователя",
+    "newTitle": "Новый пользователь",
+    "editDescription": "Изменить данные пользователя",
+    "newDescription": "Создать нового пользователя",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "successToast": "Пользователь сохранён",
+    "errorFallback": "Ошибка сохранения пользователя",
+    "usernameLabel": "имя пользователя",
+    "usernamePlaceholder": "имя пользователя",
+    "emailLabel": "email",
+    "emailPlaceholder": "email",
+    "passwordLabel": "пароль",
+    "passwordPlaceholder": "пароль",
+    "rolePlaceholder": "Выберите роль",
+    "roleViewer": "Читатель",
+    "roleEditor": "Редактор",
+    "roleAdmin": "Администратор",
+    "modeSetPassword": "Задать пароль сейчас",
+    "modeInvite": "Отправить приглашение по email",
+    "inviteSuccessToast": "Приглашение отправлено"
+  },
+  "deleteUser": {
+    "title": "Удалить пользователя?",
+    "description": "Действительно удалить этого пользователя? Действие нельзя отменить.",
+    "cancel": "Отмена",
+    "deleting": "Удаление…",
+    "delete": "Удалить",
+    "successToast": "Пользователь удалён",
+    "errorFallback": "Не удалось удалить пользователя. Попробуйте ещё раз.",
+    "body": "Пользователь <strong>{{username}}</strong> будет окончательно удалён из системы."
+  },
+  "changeOwnPassword": {
+    "title": "Смена собственного пароля",
+    "description": "Измените пароль. Обязательно запомните его!",
+    "cancel": "Отмена",
+    "saving": "Сохранение…",
+    "save": "Сохранить",
+    "successToast": "Пароль изменён",
+    "errorFallback": "Ошибка обновления пароля",
+    "oldPasswordLabel": "Старый пароль",
+    "newPasswordLabel": "Новый пароль",
+    "confirmPasswordLabel": "Подтвердите пароль"
+  },
+  "totp": {
+    "column": "2FA",
+    "enabled": "Включена",
+    "disabled": "Выключена",
+    "menuEnable": "Включить двухфакторную аутентификацию",
+    "menuDisable": "Выключить двухфакторную аутентификацию",
+    "cancel": "Отмена",
+    "setup": {
+      "passwordStepTitle": "Включение двухфакторной аутентификации",
+      "passwordStepDescription": "Подтвердите текущий пароль, чтобы начать настройку.",
+      "passwordPlaceholder": "Текущий пароль",
+      "continue": "Продолжить",
+      "continuing": "Проверка…",
+      "verifyStepTitle": "Отсканируйте QR-код",
+      "verifyStepDescription": "Отсканируйте QR-код приложением-аутентификатором или введите ключ вручную. Затем введите показанный 6-значный код.",
+      "manualKeyLabel": "Ключ для ручного ввода",
+      "codePlaceholder": "6-значный код",
+      "enable": "Включить",
+      "enabling": "Проверка…",
+      "recoveryStepTitle": "Сохраните коды восстановления",
+      "recoveryStepDescription": "Храните эти коды в надёжном месте. Каждый можно использовать один раз для входа, если вы потеряете доступ к приложению-аутентификатору. Они больше не будут показаны.",
+      "copyRecoveryCodes": "Скопировать коды",
+      "recoveryCodesCopied": "Коды восстановления скопированы в буфер обмена",
+      "done": "Готово",
+      "successToast": "Двухфакторная аутентификация включена",
+      "errorFallback": "Не удалось включить двухфакторную аутентификацию"
+    },
+    "disable": {
+      "title": "Отключение двухфакторной аутентификации",
+      "description": "Подтвердите текущий пароль и код из приложения-аутентификатора или код восстановления.",
+      "passwordPlaceholder": "Текущий пароль",
+      "codePlaceholder": "Код или код восстановления",
+      "confirm": "Выключить",
+      "disabling": "Отключение…",
+      "successToast": "Двухфакторная аутентификация выключена",
+      "errorFallback": "Не удалось выключить двухфакторную аутентификацию"
+    }
+  }
+}

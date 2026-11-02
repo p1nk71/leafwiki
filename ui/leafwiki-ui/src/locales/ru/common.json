@@ -1,0 +1,43 @@
+{
+  "sidebar": {
+    "explorerTab": "Проводник",
+    "searchTab": "Поиск"
+  },
+  "errorBoundary": {
+    "heading": "Что-то пошло не так",
+    "body": "Произошла непредвиденная ошибка. Обычно помогает перезагрузка страницы.",
+    "reloadButton": "Перезагрузить страницу",
+    "tryRecoverButton": "Попробовать восстановить",
+    "detailsSummary": "Подробности об ошибке"
+  },
+  "page404": {
+    "heading": "Страница не найдена",
+    "body": "Запрошенная страница не существует.",
+    "createPrompt": "Создайте страницу, нажав кнопку ниже.",
+    "createButton": "Создать страницу"
+  },
+  "unsavedChangesDialog": {
+    "title": "Несохранённые изменения",
+    "description": "Есть несохранённые изменения. Действительно покинуть страницу? Несохранённые данные будут потеряны.",
+    "cancelButton": "Отмена",
+    "leaveAnywayButton": "Всё равно уйти"
+  },
+  "dialog": {
+    "closeSrOnly": "Закрыть"
+  },
+  "validation": {
+    "failedToast": "Ошибка валидации"
+  },
+  "configLoad": {
+    "fetchErrorFallback": "Не удалось загрузить конфигурацию: {{status}} {{statusText}}",
+    "errorFallback": "Не удалось загрузить конфигурацию"
+  },
+  "language": {
+    "selfName": "Русский"
+  },
+  "pagination": {
+    "prev": "← Назад",
+    "next": "Вперёд →",
+    "pageOf": "Страница {{page}} из {{total}}"
+  }
+}

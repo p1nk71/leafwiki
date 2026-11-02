@@ -33,7 +33,7 @@ func TestAllowedLanguages_MatchShippedUILocales(t *testing.T) {
 func TestAllowedLanguages_ReturnsSortedShippedCodes(t *testing.T) {
 	got := AllowedLanguages()
 
-	want := []string{"de", "en", "es", "fr", "zh"}
+	want := []string{"de", "en", "es", "fr", "ru", "zh"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("expected %v, got %v", want, got)
 	}

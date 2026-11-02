@@ -6,6 +6,8 @@
     "dropzoneText": "Déposez des fichiers ici ou cliquez pour les envoyer",
     "maxFileSize": "Taille maximale : {{maxTaille}}",
     "uploading_one": "Envoi de {{count}} fichier…",
+    "uploading_few": "Envoi de {{count}} fichiers…",
+    "uploading_many": "Envoi de {{count}} fichiers…",
     "uploading_other": "Envoi de {{count}} fichiers…",
     "loading": "Chargement des ressources…",
     "empty": "Aucune ressource",

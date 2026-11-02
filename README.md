@@ -83,7 +83,7 @@ docker run -p 8080:8080 -v ~/leafwiki-data:/app/data \
 - Inject HTML/JS into `<head>` for analytics or custom CSS
 - Branding: logo, favicon, site name
 - Dark mode and mobile-friendly UI
-- Translated UI — ships in English, German, and Spanish; `--default-language` picks the default. Contributions of other languages are very welcome — see [docs/i18n.md](docs/i18n.md)
+- Translated UI — ships in English, German, Spanish, French, Russian, and Simplified Chinese; `--default-language` picks the default. Contributions of other languages are very welcome — see [docs/i18n.md](docs/i18n.md)
 
 **Opt-in via feature flags:**
 - Revision history (`--enable-revision`)
@@ -365,7 +365,7 @@ For plain HTTP: add `--allow-insecure=true` so login and CSRF cookies work.
 | `--refresh-token-timeout`        | Refresh token duration (e.g. `168h`)                                    | `168h`        | v0.7.0  |
 | `--max-asset-upload-size`        | Max upload size (e.g. `50MiB`, `52428800`)                              | `50MiB`       | v0.8.5  |
 | `--custom-stylesheet`            | Path to a `.css` file inside the data dir                               | `""`          | v0.8.5  |
-| `--default-language`             | Default UI language code (`en`, `de`, `es`)                             | `""`          | v0.13.0 |
+| `--default-language`             | Default UI language code (`en`, `de`, `es`, `fr`, `ru`, `zh`)           | `""`          | v0.13.0 |
 | `--inject-code-in-header`        | Raw HTML/JS injected into `<head>`                                      | `""`          | v0.6.0  |
 | `--hide-link-metadata-section`   | Hide backlinks and link status panel                                    | `false`       | –       |
 | `--enable-revision`              | Enable revision history                                                 | `false`       | v0.9.0  |
@@ -438,7 +438,7 @@ For plain HTTP: add `--allow-insecure=true` so login and CSRF cookies work.
 | `LEAFWIKI_REFRESH_TOKEN_TIMEOUT`        | Refresh token duration                               | `168h`        | v0.7.0  |
 | `LEAFWIKI_MAX_ASSET_UPLOAD_SIZE`        | Max upload size                                      | `50MiB`       | v0.8.5  |
 | `LEAFWIKI_CUSTOM_STYLESHEET`            | Path to `.css` file inside data dir                  | `""`          | v0.8.5  |
-| `LEAFWIKI_DEFAULT_LANGUAGE`             | Default UI language code (`en`, `de`, `es`)          | `""`          | v0.13.0 |
+| `LEAFWIKI_DEFAULT_LANGUAGE`             | Default UI language code (`en`, `de`, `es`, `fr`, `ru`, `zh`) | `""`          | v0.13.0 |
 | `LEAFWIKI_INJECT_CODE_IN_HEADER`        | HTML/JS injected into `<head>`                       | `""`          | v0.6.0  |
 | `LEAFWIKI_HIDE_LINK_METADATA_SECTION`   | Hide backlinks and link status panel                 | `false`       | –       |
 | `LEAFWIKI_ENABLE_REVISION`              | Revision history                                     | `false`       | v0.9.0  |
@@ -795,4 +795,4 @@ Need help deploying LeafWiki for your team? [Business support & setup →](https
 Contributions, discussions, and feedback are welcome.  
 Open an issue or start a discussion on GitHub. Follow the repository to get notified about new releases.
 
-**Translations:** the UI currently ships in English, German, Spanish, French, and Simplified Chinese. Adding another language is a self-contained contribution — [docs/i18n.md](docs/i18n.md) walks through it.
+**Translations:** the UI currently ships in English, German, Spanish, French, Russian, and Simplified Chinese. Adding another language is a self-contained contribution — [docs/i18n.md](docs/i18n.md) walks through it.

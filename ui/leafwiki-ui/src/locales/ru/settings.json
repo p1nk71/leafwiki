@@ -1,0 +1,52 @@
+{
+  "exit": "Выйти из настроек",
+  "nav": {
+    "title": "Настройки",
+    "account": "Учётная запись"
+  },
+  "account": {
+    "pageTitle": "Учётная запись",
+    "avatar": {
+      "sectionTitle": "Фото профиля",
+      "sectionDescription": "Загрузите фото, чтобы персонализировать учётную запись.",
+      "currentLabel": "Текущее фото:",
+      "uploadButton": "Загрузить фото",
+      "deleteButton": "Удалить фото",
+      "hint": "Допустимые форматы: {{exts}}. Максимальный размер: {{size}}.",
+      "uploadSuccess": "Фото профиля загружено",
+      "uploadFailed": "Не удалось загрузить фото профиля",
+      "deleteSuccess": "Фото профиля удалено",
+      "deleteFailed": "Не удалось удалить фото профиля"
+    },
+    "passwordSectionTitle": "Пароль",
+    "passwordSectionDescription": "Измените пароль. Обязательно запомните его!",
+    "twoFactorSectionTitle": "Двухфакторная аутентификация",
+    "twoFactorSectionDescription": "Добавьте дополнительный уровень защиты учётной записи.",
+    "preferences": {
+      "sectionTitle": "Предпочтения",
+      "sectionDescription": "Настройки редактирования, синхронизируются между вашими устройствами.",
+      "autoSaveLabel": "Включить автосохранение",
+      "autoSaveDescription": "Автоматически сохранять изменения при редактировании страницы.",
+      "savedToast": "Настройка сохранена",
+      "autoSaveToggleError": "Не удалось обновить настройку автосохранения",
+      "languageLabel": "Язык",
+      "languageChangeError": "Не удалось обновить настройку языка",
+      "dateFormatLabel": "Формат даты",
+      "dateFormatChangeError": "Не удалось обновить формат даты",
+      "timeFormatLabel": "Формат времени",
+      "timeFormatChangeError": "Не удалось обновить формат времени",
+      "dateFormat": {
+        "locale": "Как в языке",
+        "iso": "2026-08-27",
+        "dmyDot": "27.08.2026",
+        "mdySlash": "08/27/2026",
+        "dmySlash": "27/08/2026"
+      },
+      "timeFormat": {
+        "locale": "Как в языке",
+        "h24": "24-часовой (14:30)",
+        "h12": "12-часовой (2:30 PM)"
+      }
+    }
+  }
+}

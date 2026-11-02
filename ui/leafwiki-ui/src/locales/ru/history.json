@@ -1,0 +1,108 @@
+{
+  "common": {
+    "unknown": "Неизвестно",
+    "unknownTime": "Неизвестное время"
+  },
+  "errors": {
+    "loadListFallback": "Не удалось загрузить историю страницы",
+    "loadPreviewFallback": "Не удалось загрузить предпросмотр версии",
+    "compareFallback": "Не удалось сравнить версии",
+    "loadMoreFallback": "Не удалось загрузить ещё версии"
+  },
+  "trigger": {
+    "contentUpdate": "Сохранено после изменения содержимого",
+    "assetUpdate": "Сохранено после изменения файлов",
+    "structureUpdate": "Сохранено после изменения структуры",
+    "restore": "Сохранено после восстановления",
+    "delete": "Сохранено перед удалением",
+    "generic": "Сохранено как {{type}}"
+  },
+  "assetChange": {
+    "added": "Добавлено",
+    "removed": "Удалено",
+    "replaced": "Заменено"
+  },
+  "restoreDialog": {
+    "title": "Восстановить версию?",
+    "description": "Будут восстановлены содержимое, заголовок и файлы этой версии. Текущий слаг и расположение не изменятся.",
+    "cancel": "Отмена",
+    "confirm": "Восстановить версию",
+    "restoredTitleLabel": "Восстановленный заголовок:",
+    "slugNote": "У этой версии был слаг <mono>{{revisionSlug}}</mono>. Текущий слаг <mono>{{currentSlug}}</mono> не изменится."
+  },
+  "diff": {
+    "noTextDifference": "Текст этой версии не отличается от активной."
+  },
+  "changes": {
+    "summaryHeading": "Сводка изменений",
+    "linesAdded": "Строк добавлено с тех пор",
+    "linesRemoved": "Строк удалено с тех пор",
+    "assetsChanged": "Файлов изменено",
+    "diffHeading": "Изменения",
+    "diffNote": "по сравнению с активной версией",
+    "assetsDetails": "Файлы ({{count}})",
+    "assetAdded": "добавлено: {{count}}",
+    "assetReplaced": "заменено: {{count}}",
+    "assetRemoved": "удалено: {{count}}"
+  },
+  "rawText": {
+    "heading": "Исходный текст",
+    "empty": "(пусто)"
+  },
+  "assetsPanel": {
+    "heading": "Файлы",
+    "empty": "С этой версией не сохранено файлов.",
+    "octetStream": "application/octet-stream",
+    "openAsset": "Открыть файл",
+    "downloadAsset": "Скачать файл"
+  },
+  "tabs": {
+    "preview": "Предпросмотр",
+    "changes": "Изменения",
+    "raw": "Исходный текст",
+    "assets": "Файлы",
+    "mobileRevisions": "Версии",
+    "mobileDetails": "Подробности"
+  },
+  "detail": {
+    "loadingHistory": "Загрузка истории…",
+    "noRevisionSelectedTitle": "Версия не выбрана",
+    "noRevisionSelectedMessage": "Выберите версию из списка, чтобы посмотреть подробности.",
+    "loadingDiff": "Загрузка сравнения…",
+    "loadingPreview": "Загрузка предпросмотра…",
+    "noPreview": "Предпросмотр недоступен.",
+    "noChangesFromCurrent": "Отличий от текущей версии нет.",
+    "noComparisonData": "Данные для сравнения недоступны.",
+    "noRawText": "Исходный текст недоступен.",
+    "noAssetData": "Данные о файлах недоступны."
+  },
+  "list": {
+    "loading": "Загрузка истории…",
+    "emptyWithLatest": "Предыдущих версий пока нет. Более старые версии появятся здесь после новых изменений.",
+    "emptyNoLatest": "Версий пока нет. Они появятся здесь после изменения страницы.",
+    "activeVersionBadge": "Активная версия",
+    "loadMoreLoading": "Загрузка…",
+    "loadMore": "Загрузить ещё",
+    "resizeAriaLabel": "Изменить размер списка версий",
+    "title": "История версий"
+  },
+  "header": {
+    "revisionBy": "Версия от {{author}} · {{time}}",
+    "restoreLoading": "Восстановление…",
+    "currentVersion": "Текущая версия",
+    "restore": "Восстановить",
+    "titleLabel": "Заголовок",
+    "slugLabel": "Слаг",
+    "emptyValue": "(пусто)"
+  },
+  "chips": {
+    "revisionSlug": "Слаг версии: {{slug}}",
+    "currentSlug": "Текущий слаг: {{slug}}",
+    "assetChangesCount": "изменений файлов: {{count}}",
+    "assetsCount": "файлов: {{count}}"
+  },
+  "toasts": {
+    "restoreSuccess": "Версия восстановлена",
+    "restoreErrorFallback": "Не удалось восстановить версию"
+  }
+}

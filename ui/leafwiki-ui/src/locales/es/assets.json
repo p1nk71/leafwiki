@@ -6,6 +6,8 @@
     "dropzoneText": "Suelta los archivos aquí o haz clic para subirlos",
     "maxFileSize": "Tamaño máximo del archivo: {{maxSize}}",
     "uploading_one": "Subiendo {{count}} archivo…",
+    "uploading_few": "Subiendo {{count}} archivos…",
+    "uploading_many": "Subiendo {{count}} archivos…",
     "uploading_other": "Subiendo {{count}} archivos…",
     "loading": "Cargando recursos…",
     "empty": "Aún no hay recursos",

@@ -6,6 +6,8 @@
     "dropzoneText": "Dateien hierher ziehen oder klicken zum Hochladen",
     "maxFileSize": "Maximale Dateigröße: {{maxSize}}",
     "uploading_one": "{{count}} Datei wird hochgeladen…",
+    "uploading_few": "{{count}} Dateien werden hochgeladen…",
+    "uploading_many": "{{count}} Dateien werden hochgeladen…",
     "uploading_other": "{{count}} Dateien werden hochgeladen…",
     "loading": "Dateien werden geladen…",
     "empty": "Noch keine Dateien vorhanden",

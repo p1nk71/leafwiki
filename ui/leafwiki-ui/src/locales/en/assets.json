@@ -6,6 +6,8 @@
     "dropzoneText": "Drop files here or click to upload",
     "maxFileSize": "Max file size: {{maxSize}}",
     "uploading_one": "Uploading {{count}} file…",
+    "uploading_few": "Uploading {{count}} files…",
+    "uploading_many": "Uploading {{count}} files…",
     "uploading_other": "Uploading {{count}} files…",
     "loading": "Loading assets…",
     "empty": "No assets yet",

@@ -43,6 +43,8 @@
     "backlinksLoading": "Checking which pages reference this page...",
     "backlinksError": "Could not load page references. Deleting will still work, but link impact could not be shown.",
     "backlinksWarning_one": "This page is referenced by {{count}} page.",
+    "backlinksWarning_few": "This page is referenced by {{count}} pages.",
+    "backlinksWarning_many": "This page is referenced by {{count}} pages.",
     "backlinksWarning_other": "This page is referenced by {{count}} pages.",
     "backlinksWarningBody": "Deleting this page will leave those links broken.",
     "noBacklinks": "No pages currently reference this page.",

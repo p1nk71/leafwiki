@@ -6,6 +6,8 @@
     "dropzoneText": "将文件拖到此处，或点击上传",
     "maxFileSize": "最大文件大小：{{maxSize}}",
     "uploading_one": "正在上传 {{count}} 个文件…",
+    "uploading_few": "正在上传 {{count}} 个文件…",
+    "uploading_many": "正在上传 {{count}} 个文件…",
     "uploading_other": "正在上传 {{count}} 个文件…",
     "loading": "正在加载附件…",
     "empty": "暂无附件",

@@ -1,0 +1,42 @@
+{
+  "input": {
+    "placeholder": "Поиск…",
+    "clearButton": "Очистить"
+  },
+  "tags": {
+    "accordionTitle": "Все теги",
+    "available_one": "Доступен {{count}} тег",
+    "available_few": "Доступно {{count}} тега",
+    "available_many": "Доступно {{count}} тегов",
+    "available_other": "Доступно {{count}} тега",
+    "selected_one": "Выбран {{count}} тег",
+    "selected_few": "Выбрано {{count}} тега",
+    "selected_many": "Выбрано {{count}} тегов",
+    "selected_other": "Выбрано {{count}} тега",
+    "loading": "Загрузка тегов…",
+    "error": "Не удалось загрузить теги.",
+    "clearFilter": "Сбросить фильтр по тегам"
+  },
+  "results": {
+    "loading": "Загрузка результатов…",
+    "noResults": "Ничего не найдено.",
+    "resultSummary_one": "Найден <bold>{{count}}</bold> результат по запросу",
+    "resultSummary_few": "Найдено <bold>{{count}}</bold> результата по запросу",
+    "resultSummary_many": "Найдено <bold>{{count}}</bold> результатов по запросу",
+    "resultSummary_other": "Найдено <bold>{{count}}</bold> результата по запросу",
+    "filterQuery": "«{{query}}»",
+    "filterQueryWithTags_one": "«{{query}}» и {{count}} тег",
+    "filterQueryWithTags_few": "«{{query}}» и {{count}} тега",
+    "filterQueryWithTags_many": "«{{query}}» и {{count}} тегов",
+    "filterQueryWithTags_other": "«{{query}}» и {{count}} тега",
+    "filterTagged": "с тегом «{{tag}}»",
+    "filterTaggedWith_one": "с {{count}} тегом",
+    "filterTaggedWith_few": "с {{count}} тегами",
+    "filterTaggedWith_many": "с {{count}} тегами",
+    "filterTaggedWith_other": "с {{count}} тегами"
+  },
+  "resultCard": {
+    "kindPage": "Страница",
+    "kindSection": "Раздел"
+  }
+}
