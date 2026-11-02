@@ -93,14 +93,14 @@ func newTestEmailTokenService(t *testing.T, smtpAddr string) (*EmailTokenService
 	t.Helper()
 	storageDir := t.TempDir()
 
-	userStore, err := NewUserStore(storageDir)
+	userStore, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore returned error: %v", err)
 	}
 	t.Cleanup(func() { _ = userStore.Close() })
 	users := NewUserService(userStore)
 
-	sessionStore, err := NewSessionStore(storageDir)
+	sessionStore, err := NewSessionStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore returned error: %v", err)
 	}
@@ -108,7 +108,7 @@ func newTestEmailTokenService(t *testing.T, smtpAddr string) (*EmailTokenService
 	sessions := NewSessionManager(sessionStore, "test-jwt-secret-at-least-32-characters-long", time.Hour, 24*time.Hour)
 	authService := NewAuthService(users, sessions, nil)
 
-	tokens, err := NewEmailTokenStore(storageDir)
+	tokens, err := NewEmailTokenStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("NewEmailTokenStore returned error: %v", err)
 	}

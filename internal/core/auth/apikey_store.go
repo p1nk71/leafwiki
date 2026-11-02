@@ -1,14 +1,24 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
+	"embed"
+	"fmt"
+	"io/fs"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
+
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
 	_ "modernc.org/sqlite"
 )
+
+//go:embed migrations
+var apikeyMigrations embed.FS
 
 // APIKey is the persisted representation of an API key. The plaintext secret
 // is never stored — only KeyHash (a SHA-256 hash of the secret half of the
@@ -43,16 +53,32 @@ type APIKeyStore struct {
 	mu         sync.Mutex
 	storageDir string
 	filename   string
-	db         *sql.DB
+	db         *pgdb.DB
+	pg         bool
 	// suspended is set by suspend() and makes withDB refuse to lazily reopen
 	// db — see suspend's doc comment.
 	suspended bool
 }
 
-func NewAPIKeyStore(storageDir string) (*APIKeyStore, error) {
+// NewAPIKeyStore opens api_keys.db under storageDir — or the Postgres
+// api_keys table when pg is set (ADR-0018).
+func NewAPIKeyStore(storageDir string, pg *pgxpool.Pool) (*APIKeyStore, error) {
 	s := &APIKeyStore{
 		storageDir: storageDir,
 		filename:   "api_keys.db",
+	}
+
+	if pg != nil {
+		s.pg = true
+		s.db = pgdb.NewPGDB(pg)
+		migs, err := fs.Sub(apikeyMigrations, "migrations/api_keys")
+		if err != nil {
+			return nil, fmt.Errorf("api keys migrations: %w", err)
+		}
+		if err := pgdb.Migrate(context.Background(), pg, "api_keys", migs); err != nil {
+			return nil, fmt.Errorf("api keys migrations: %w", err)
+		}
+		return s, nil
 	}
 
 	if err := s.ensureSchema(); err != nil {
@@ -62,7 +88,7 @@ func NewAPIKeyStore(storageDir string) (*APIKeyStore, error) {
 	return s, nil
 }
 
-func (s *APIKeyStore) withDB(fn func(db *sql.DB) error) error {
+func (s *APIKeyStore) withDB(fn func(db *pgdb.DB) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -70,12 +96,12 @@ func (s *APIKeyStore) withDB(fn func(db *sql.DB) error) error {
 		return errAPIKeyStoreUnavailable()
 	}
 
-	if s.db == nil {
+	if s.db == nil && !s.pg {
 		db, err := sql.Open("sqlite", databasePath(s.storageDir, s.filename)+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 		if err != nil {
 			return err
 		}
-		s.db = db
+		s.db = pgdb.NewDB(db, false)
 	}
 
 	return fn(s.db)
@@ -96,7 +122,7 @@ func (s *APIKeyStore) suspend() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.suspended = true
-	if s.db == nil {
+	if s.db == nil || s.pg {
 		return nil
 	}
 	err := s.db.Close()
@@ -126,8 +152,8 @@ func errAPIKeyStoreUnavailable() error {
 }
 
 func (s *APIKeyStore) ensureSchema() error {
-	return s.withDB(func(db *sql.DB) error {
-		_, err := db.Exec(`
+	return s.withDB(func(db *pgdb.DB) error {
+		_, err := db.Inner().Exec(`
 			CREATE TABLE IF NOT EXISTS api_keys (
 				id           TEXT PRIMARY KEY,
 				name         TEXT NOT NULL,
@@ -150,7 +176,7 @@ func (s *APIKeyStore) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.db != nil {
+	if s.db != nil && !s.pg {
 		if err := s.db.Close(); err != nil {
 			return err
 		}
@@ -160,7 +186,7 @@ func (s *APIKeyStore) Close() error {
 }
 
 func (s *APIKeyStore) CreateAPIKey(key *APIKey) error {
-	return s.withDB(func(db *sql.DB) error {
+	return s.withDB(func(db *pgdb.DB) error {
 		_, err := db.Exec(`
 			INSERT INTO api_keys (id, name, user_id, prefix, key_hash, role, expires_at, created_by, created_at, last_used_at, revoked_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
@@ -176,7 +202,7 @@ func (s *APIKeyStore) CreateAPIKey(key *APIKey) error {
 
 func (s *APIKeyStore) GetByPrefix(prefix string) (*APIKey, error) {
 	var key *APIKey
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		row := db.QueryRow(`
 			SELECT id, name, user_id, prefix, key_hash, role, expires_at, created_by, created_at, last_used_at, revoked_at
 			FROM api_keys
@@ -197,7 +223,7 @@ func (s *APIKeyStore) GetByPrefix(prefix string) (*APIKey, error) {
 
 func (s *APIKeyStore) GetByID(id string) (*APIKey, error) {
 	var key *APIKey
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		row := db.QueryRow(`
 			SELECT id, name, user_id, prefix, key_hash, role, expires_at, created_by, created_at, last_used_at, revoked_at
 			FROM api_keys
@@ -218,7 +244,7 @@ func (s *APIKeyStore) GetByID(id string) (*APIKey, error) {
 
 func (s *APIKeyStore) ListAll() ([]*APIKey, error) {
 	var keys []*APIKey
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		rows, err := db.Query(`
 			SELECT id, name, user_id, prefix, key_hash, role, expires_at, created_by, created_at, last_used_at, revoked_at
 			FROM api_keys
@@ -251,7 +277,7 @@ func (s *APIKeyStore) Revoke(id string) error {
 	if _, err := s.GetByID(id); err != nil {
 		return err
 	}
-	return s.withDB(func(db *sql.DB) error {
+	return s.withDB(func(db *pgdb.DB) error {
 		_, err := db.Exec(`
 			UPDATE api_keys
 			SET revoked_at = ?
@@ -266,7 +292,7 @@ func (s *APIKeyStore) Revoke(id string) error {
 // is gone (APIKeyService.Resolve re-validates the owner on every use), so
 // this is orphaned-row hygiene rather than a security-critical revocation.
 func (s *APIKeyStore) DeleteAllForUser(userID string) error {
-	return s.withDB(func(db *sql.DB) error {
+	return s.withDB(func(db *pgdb.DB) error {
 		_, err := db.Exec(`DELETE FROM api_keys WHERE user_id = ?;`, userID)
 		return err
 	})
@@ -275,7 +301,7 @@ func (s *APIKeyStore) DeleteAllForUser(userID string) error {
 // TouchLastUsed records that a key was just used. Throttling (to avoid a
 // write on every request) is the caller's responsibility.
 func (s *APIKeyStore) TouchLastUsed(id string, at time.Time) error {
-	return s.withDB(func(db *sql.DB) error {
+	return s.withDB(func(db *pgdb.DB) error {
 		_, err := db.Exec(`
 			UPDATE api_keys
 			SET last_used_at = ?
@@ -286,7 +312,8 @@ func (s *APIKeyStore) TouchLastUsed(id string, at time.Time) error {
 }
 
 func (s *APIKeyStore) mapConstraintViolationToError(err error) error {
-	if strings.Contains(err.Error(), "UNIQUE constraint failed: api_keys.prefix") {
+	if strings.Contains(err.Error(), "UNIQUE constraint failed: api_keys.prefix") ||
+		strings.Contains(err.Error(), `violates unique constraint "api_keys_prefix`) {
 		return ErrAPIKeyPrefixCollision
 	}
 	return err

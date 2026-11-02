@@ -98,7 +98,7 @@ func (s *APIKeyService) PauseForSwap() error {
 // pre-existing-but-older api_keys.db up to the current schema. Mirrors
 // AuthService.ReplaceUserStore.
 func (s *APIKeyService) Replace(storageDir string) error {
-	newStore, err := NewAPIKeyStore(storageDir)
+	newStore, err := NewAPIKeyStore(storageDir, nil)
 	if err != nil {
 		return err
 	}

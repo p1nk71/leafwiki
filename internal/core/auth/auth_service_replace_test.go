@@ -10,7 +10,7 @@ import (
 
 func TestAuthService_ReplaceUserStore_SwapsToNewUsers(t *testing.T) {
 	oldDir := t.TempDir()
-	oldStore, err := NewUserStore(oldDir)
+	oldStore, err := NewUserStore(oldDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,7 +18,7 @@ func TestAuthService_ReplaceUserStore_SwapsToNewUsers(t *testing.T) {
 	if _, err := NewUserService(oldStore).CreateUser("old-user", "old@example.com", "old-password", "admin"); err != nil {
 		t.Fatal(err)
 	}
-	sessionStore, err := NewSessionStore(t.TempDir())
+	sessionStore, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestAuthService_ReplaceUserStore_SwapsToNewUsers(t *testing.T) {
 	}
 
 	newDir := t.TempDir()
-	newStore, err := NewUserStore(newDir)
+	newStore, err := NewUserStore(newDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestAuthService_PauseUserStoreForSwap_ThenReplaceUserStore_Recovers(t *test
 	}
 
 	newDir := t.TempDir()
-	newStore, err := NewUserStore(newDir)
+	newStore, err := NewUserStore(newDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestAuthService_ReplaceUserStore_ClosesPreviousStore(t *testing.T) {
 	t.Cleanup(func() { _ = f.Close() })
 
 	newDir := t.TempDir()
-	newStore, err := NewUserStore(newDir)
+	newStore, err := NewUserStore(newDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestAuthService_ReplaceUserStore_ClosesPreviousStore(t *testing.T) {
 
 func TestAuthService_ReplaceUserStore_ConcurrentLoginsDuringSwap(t *testing.T) {
 	oldDir := t.TempDir()
-	oldStore, err := NewUserStore(oldDir)
+	oldStore, err := NewUserStore(oldDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestAuthService_ReplaceUserStore_ConcurrentLoginsDuringSwap(t *testing.T) {
 	if _, err := NewUserService(oldStore).CreateUser("shared-user", "shared@example.com", "shared-password", "admin"); err != nil {
 		t.Fatal(err)
 	}
-	sessionStore, err := NewSessionStore(t.TempDir())
+	sessionStore, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestAuthService_ReplaceUserStore_ConcurrentLoginsDuringSwap(t *testing.T) {
 	t.Cleanup(func() { _ = authService.Close() })
 
 	newDir := t.TempDir()
-	newStore, err := NewUserStore(newDir)
+	newStore, err := NewUserStore(newDir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -12,7 +12,7 @@ import (
 func setupAPIKeyUseCases(t *testing.T) (*CreateAPIKeyUseCase, *ListAPIKeysUseCase, *RevokeAPIKeyUseCase, *coreauth.UserService) {
 	t.Helper()
 
-	userStore, err := coreauth.NewUserStore(t.TempDir())
+	userStore, err := coreauth.NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}
@@ -23,7 +23,7 @@ func setupAPIKeyUseCases(t *testing.T) (*CreateAPIKeyUseCase, *ListAPIKeysUseCas
 	})
 	userService := coreauth.NewUserService(userStore)
 
-	sessionStore, err := coreauth.NewSessionStore(t.TempDir())
+	sessionStore, err := coreauth.NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore: %v", err)
 	}
@@ -35,7 +35,7 @@ func setupAPIKeyUseCases(t *testing.T) (*CreateAPIKeyUseCase, *ListAPIKeysUseCas
 	sessions := coreauth.NewSessionManager(sessionStore, "test-secret-key-for-unit-tests-1", time.Hour, 24*time.Hour)
 	authService := coreauth.NewAuthService(userService, sessions, nil)
 
-	keyStore, err := coreauth.NewAPIKeyStore(t.TempDir())
+	keyStore, err := coreauth.NewAPIKeyStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewAPIKeyStore: %v", err)
 	}

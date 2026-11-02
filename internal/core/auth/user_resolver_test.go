@@ -134,14 +134,14 @@ func TestUserResolver_ResolveUserLabel_DoesNotCacheStoreUnavailableAsMiss(t *tes
 // AuthService.ReplaceUserStore swap, so a cache-miss lookup for a user that
 // only exists in the restored store fails forever.
 func TestUserResolver_ResolveUserLabel_ReflectsLiveRestore(t *testing.T) {
-	preStore, err := NewUserStore(t.TempDir())
+	preStore, err := NewUserStore(t.TempDir(), nil)
 	if err != nil {
-		t.Fatalf("NewUserStore(pre): %v", err)
+		t.Fatalf("NewUserStore(pre, nil): %v", err)
 	}
 	t.Cleanup(func() { test_utils.WrapCloseWithErrorCheck(preStore.Close, t) })
 	preSvc := NewUserService(preStore)
 
-	sessionStore, err := NewSessionStore(t.TempDir())
+	sessionStore, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore: %v", err)
 	}
@@ -160,9 +160,9 @@ func TestUserResolver_ResolveUserLabel_ReflectsLiveRestore(t *testing.T) {
 	}
 
 	postDir := t.TempDir()
-	postStore, err := NewUserStore(postDir)
+	postStore, err := NewUserStore(postDir, nil)
 	if err != nil {
-		t.Fatalf("NewUserStore(post): %v", err)
+		t.Fatalf("NewUserStore(post, nil): %v", err)
 	}
 	t.Cleanup(func() { test_utils.WrapCloseWithErrorCheck(postStore.Close, t) })
 	postSvc := NewUserService(postStore)

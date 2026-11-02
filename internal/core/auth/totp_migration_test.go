@@ -46,7 +46,7 @@ func TestUserStore_MigratesExistingDatabaseInPlace(t *testing.T) {
 	storageDir := t.TempDir()
 	createPreTOTPDatabase(t, storageDir)
 
-	store, err := NewUserStore(storageDir)
+	store, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("failed to open pre-TOTP database through UserStore: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestUserStore_MigrationAddsTOTPColumnsWithSafeDefaults(t *testing.T) {
 	storageDir := t.TempDir()
 	createPreTOTPDatabase(t, storageDir)
 
-	store, err := NewUserStore(storageDir)
+	store, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("failed to migrate pre-TOTP database: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestUserStore_MigrationIsIdempotent(t *testing.T) {
 	storageDir := t.TempDir()
 	createPreTOTPDatabase(t, storageDir)
 
-	store1, err := NewUserStore(storageDir)
+	store1, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("first migration failed: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestUserStore_MigrationIsIdempotent(t *testing.T) {
 
 	// Re-opening (and thus re-running ensureSchema/ensureTOTPColumns) against
 	// the already-migrated database must not fail or duplicate/lose data.
-	store2, err := NewUserStore(storageDir)
+	store2, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("second migration run failed: %v", err)
 	}
@@ -134,7 +134,7 @@ func TestUserStore_MigrationIsIdempotent(t *testing.T) {
 func TestUserStore_FreshDatabaseInitializesWithTOTPSchema(t *testing.T) {
 	storageDir := t.TempDir()
 
-	store, err := NewUserStore(storageDir)
+	store, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("failed to create fresh database: %v", err)
 	}

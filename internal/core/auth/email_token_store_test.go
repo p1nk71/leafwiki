@@ -9,7 +9,7 @@ import (
 
 func newTestEmailTokenStore(t *testing.T) *EmailTokenStore {
 	t.Helper()
-	store, err := NewEmailTokenStore(t.TempDir())
+	store, err := NewEmailTokenStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewEmailTokenStore returned error: %v", err)
 	}

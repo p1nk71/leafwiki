@@ -11,32 +11,54 @@ import (
 	"sync"
 	"time"
 
+	"embed"
+	"io/fs"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
 	"github.com/perber/wiki/internal/core/shared/sqliteutil"
 	_ "modernc.org/sqlite"
 )
+
+//go:embed migrations
+var migrations embed.FS
 
 // ShareLinkStore persists share links in share_links.db, storing only a
 // SHA-256 hash of each token. It is real state: quarantined on corruption
 // (ADR-0013) and part of snapshots (ADR-0016). Same shape as FavoritesStore.
 type ShareLinkStore struct {
 	mu        sync.Mutex
-	db        *sql.DB
+	db        *pgdb.DB
+	pg        bool
 	suspended bool // set by PauseForSwap until Replace reopens the file
 	log       *slog.Logger
 }
 
-// NewShareLinkStore opens (or creates) storageDir/share_links.db.
-func NewShareLinkStore(storageDir string, log *slog.Logger) (*ShareLinkStore, error) {
+// NewShareLinkStore opens (or creates) storageDir/share_links.db — or the
+// Postgres share_links table when pg is set (ADR-0018).
+func NewShareLinkStore(storageDir string, log *slog.Logger, pg *pgxpool.Pool) (*ShareLinkStore, error) {
 	normalized := filepath.FromSlash(strings.ReplaceAll(storageDir, `\`, `/`))
 	dbPath := filepath.Join(normalized, "share_links.db")
 
 	s := &ShareLinkStore{log: log}
+	if pg != nil {
+		s.pg = true
+		s.db = pgdb.NewPGDB(pg)
+		migs, err := fs.Sub(migrations, "migrations")
+		if err != nil {
+			return nil, fmt.Errorf("share links migrations: %w", err)
+		}
+		if err := pgdb.Migrate(context.Background(), pg, "sharing", migs); err != nil {
+			return nil, fmt.Errorf("share links migrations: %w", err)
+		}
+		return s, nil
+	}
 	err := sqliteutil.OpenWithPolicy(dbPath, sqliteutil.QuarantineOnCorruption, func() error {
 		db, err := sql.Open("sqlite", dbPath+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 		if err != nil {
 			return fmt.Errorf("failed to open share links database: %w", err)
 		}
-		s.db = db
+		s.db = pgdb.NewDB(db, false)
 		if err := s.ensureSchema(); err != nil {
 			_ = db.Close()
 			s.db = nil
@@ -51,7 +73,7 @@ func NewShareLinkStore(storageDir string, log *slog.Logger) (*ShareLinkStore, er
 }
 
 func (s *ShareLinkStore) ensureSchema() error {
-	_, err := s.db.Exec(`
+	_, err := s.db.Inner().Exec(`
 		CREATE TABLE IF NOT EXISTS share_links (
 			id                  TEXT PRIMARY KEY,
 			token_hash          TEXT NOT NULL UNIQUE,
@@ -67,7 +89,7 @@ func (s *ShareLinkStore) ensureSchema() error {
 }
 
 // withDB runs fn, or fails while the store is suspended for a restore.
-func (s *ShareLinkStore) withDB(fn func(db *sql.DB) error) error {
+func (s *ShareLinkStore) withDB(fn func(db *pgdb.DB) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -79,7 +101,7 @@ func (s *ShareLinkStore) withDB(fn func(db *sql.DB) error) error {
 
 // Insert stores link with its token hash.
 func (s *ShareLinkStore) Insert(ctx context.Context, link *ShareLink) error {
-	return s.withDB(func(db *sql.DB) error {
+	return s.withDB(func(db *pgdb.DB) error {
 		_, err := db.ExecContext(ctx,
 			`INSERT INTO share_links (id, token_hash, page_id, include_descendants, expires_at, created_by, created_at)
 			 VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -95,7 +117,7 @@ func (s *ShareLinkStore) Insert(ctx context.Context, link *ShareLink) error {
 // FindByTokenHash returns the link for tokenHash (ignoring expiry) or errLinkNotStored.
 func (s *ShareLinkStore) FindByTokenHash(ctx context.Context, tokenHash string) (*ShareLink, error) {
 	var link *ShareLink
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		var err error
 		link, err = scanLink(db.QueryRowContext(ctx,
 			`SELECT id, token_hash, page_id, include_descendants, expires_at, created_by, created_at
@@ -111,7 +133,7 @@ func (s *ShareLinkStore) FindByTokenHash(ctx context.Context, tokenHash string) 
 // Delete removes the link id and reports whether it existed.
 func (s *ShareLinkStore) Delete(ctx context.Context, id string) (bool, error) {
 	var removed bool
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		res, err := db.ExecContext(ctx, `DELETE FROM share_links WHERE id = ?`, id)
 		if err != nil {
 			return fmt.Errorf("failed to delete share link %s: %w", id, err)
@@ -133,7 +155,7 @@ func (s *ShareLinkStore) PauseForSwap() error {
 	defer s.mu.Unlock()
 
 	s.suspended = true
-	if s.db == nil {
+	if s.db == nil || s.pg {
 		return nil
 	}
 	err := s.db.Close()
@@ -143,7 +165,13 @@ func (s *ShareLinkStore) PauseForSwap() error {
 
 // Replace reopens share_links.db from storageDir after a restore.
 func (s *ShareLinkStore) Replace(storageDir string) error {
-	fresh, err := NewShareLinkStore(storageDir, s.log)
+	if s.pg {
+		s.mu.Lock()
+		s.suspended = false
+		s.mu.Unlock()
+		return nil
+	}
+	fresh, err := NewShareLinkStore(storageDir, s.log, nil)
 	if err != nil {
 		return err
 	}
@@ -167,7 +195,7 @@ func (s *ShareLinkStore) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.db != nil {
+	if s.db != nil && !s.pg {
 		if err := s.db.Close(); err != nil {
 			return err
 		}

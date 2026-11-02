@@ -20,7 +20,7 @@ func (anyPage) FindPageByID(id string) (*tree.PageNode, error) {
 
 func newShareLinkService(t *testing.T, dataDir string) *sharing.ShareLinkService {
 	t.Helper()
-	store, err := sharing.NewShareLinkStore(dataDir, nil)
+	store, err := sharing.NewShareLinkStore(dataDir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewShareLinkStore failed: %v", err)
 	}

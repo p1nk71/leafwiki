@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"database/sql"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,12 +8,13 @@ import (
 	"time"
 
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
 	"github.com/perber/wiki/internal/test_utils"
 )
 
 func setupTestAPIKeyStore(t *testing.T) *APIKeyStore {
 	t.Helper()
-	store, err := NewAPIKeyStore(t.TempDir())
+	store, err := NewAPIKeyStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("Failed to create api key store: %v", err)
 	}
@@ -26,7 +26,7 @@ func TestAPIKeyStore_UsesWALJournalMode(t *testing.T) {
 	defer test_utils.WrapCloseWithErrorCheck(store.Close, t)
 
 	var mode string
-	if err := store.withDB(func(db *sql.DB) error {
+	if err := store.withDB(func(db *pgdb.DB) error {
 		return db.QueryRow(`PRAGMA journal_mode`).Scan(&mode)
 	}); err != nil {
 		t.Fatalf("failed to read journal_mode: %v", err)
@@ -38,7 +38,7 @@ func TestAPIKeyStore_UsesWALJournalMode(t *testing.T) {
 
 func TestAPIKeyStore_CreatesDatabaseInStorageDir(t *testing.T) {
 	storageDir := t.TempDir()
-	store, err := NewAPIKeyStore(storageDir)
+	store, err := NewAPIKeyStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("NewAPIKeyStore err: %v", err)
 	}

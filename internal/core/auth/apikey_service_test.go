@@ -12,14 +12,14 @@ import (
 func setupTestAPIKeyService(t *testing.T) (*APIKeyService, *UserService) {
 	t.Helper()
 
-	userStore, err := NewUserStore(t.TempDir())
+	userStore, err := NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewUserStore err: %v", err)
 	}
 	t.Cleanup(func() { test_utils.WrapCloseWithErrorCheck(userStore.Close, t) })
 	userService := NewUserService(userStore)
 
-	sessionStore, err := NewSessionStore(t.TempDir())
+	sessionStore, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore err: %v", err)
 	}
@@ -27,7 +27,7 @@ func setupTestAPIKeyService(t *testing.T) (*APIKeyService, *UserService) {
 	sessions := NewSessionManager(sessionStore, "test-secret-key-for-unit-tests-1", time.Hour, 24*time.Hour)
 	authService := NewAuthService(userService, sessions, nil)
 
-	keyStore, err := NewAPIKeyStore(t.TempDir())
+	keyStore, err := NewAPIKeyStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewAPIKeyStore err: %v", err)
 	}

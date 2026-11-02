@@ -43,7 +43,7 @@ const testTOTPEncryptionKey = "test-totp-encryption-key-32byte!"
 func setupAuthUseCases(t *testing.T, withTOTP bool) (*coreauth.AuthService, *coreauth.UserService, *httpmetrics.HTTPMetrics) {
 	t.Helper()
 
-	userStore, err := coreauth.NewUserStore(t.TempDir())
+	userStore, err := coreauth.NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}
@@ -54,7 +54,7 @@ func setupAuthUseCases(t *testing.T, withTOTP bool) (*coreauth.AuthService, *cor
 	})
 	userSvc := coreauth.NewUserService(userStore)
 
-	sessionStore, err := coreauth.NewSessionStore(t.TempDir())
+	sessionStore, err := coreauth.NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore: %v", err)
 	}
@@ -79,7 +79,7 @@ func setupAuthUseCases(t *testing.T, withTOTP bool) (*coreauth.AuthService, *cor
 
 func setupUpdateUserUseCase(t *testing.T) (*UpdateUserUseCase, *coreauth.UserService) {
 	t.Helper()
-	store, err := coreauth.NewUserStore(t.TempDir())
+	store, err := coreauth.NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}
@@ -448,7 +448,7 @@ func TestTOTPUseCases_AuthDisabled(t *testing.T) {
 // secret and recovery code hashes on the internal User must never reach the
 // PublicUser the admin API serializes to JSON.
 func TestGetUsersUseCase_DoesNotExposeTOTPSecretOrRecoveryCodes(t *testing.T) {
-	store, err := coreauth.NewUserStore(t.TempDir())
+	store, err := coreauth.NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}
@@ -503,7 +503,7 @@ func TestGetUsersUseCase_DoesNotExposeTOTPSecretOrRecoveryCodes(t *testing.T) {
 // though sessions.db does not have the same cleanup today (deliberately not
 // copying that gap, see plans/favorites.md).
 func TestDeleteUser_RemovesFavoritesForUser(t *testing.T) {
-	store, err := coreauth.NewUserStore(t.TempDir())
+	store, err := coreauth.NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}
@@ -519,7 +519,7 @@ func TestDeleteUser_RemovesFavoritesForUser(t *testing.T) {
 		t.Fatalf("NewUserResolver: %v", err)
 	}
 
-	favoritesStore, err := favorites.NewFavoritesStore(t.TempDir(), nil)
+	favoritesStore, err := favorites.NewFavoritesStore(t.TempDir(), nil, nil)
 	if err != nil {
 		t.Fatalf("NewFavoritesStore: %v", err)
 	}
@@ -529,7 +529,7 @@ func TestDeleteUser_RemovesFavoritesForUser(t *testing.T) {
 		}
 	})
 
-	settingsStore, err := usersettings.NewUserSettingsStore(t.TempDir(), nil)
+	settingsStore, err := usersettings.NewUserSettingsStore(t.TempDir(), nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore: %v", err)
 	}
@@ -540,7 +540,7 @@ func TestDeleteUser_RemovesFavoritesForUser(t *testing.T) {
 	})
 	settingsSvc := usersettings.NewUserSettingsService(settingsStore)
 
-	sessionStore, err := coreauth.NewSessionStore(t.TempDir())
+	sessionStore, err := coreauth.NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore: %v", err)
 	}
@@ -552,7 +552,7 @@ func TestDeleteUser_RemovesFavoritesForUser(t *testing.T) {
 	sessions := coreauth.NewSessionManager(sessionStore, "test-secret-key-for-unit-tests-1", time.Hour, 24*time.Hour)
 	authSvc := coreauth.NewAuthService(userSvc, sessions, nil)
 
-	apiKeyStore, err := coreauth.NewAPIKeyStore(t.TempDir())
+	apiKeyStore, err := coreauth.NewAPIKeyStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewAPIKeyStore: %v", err)
 	}
@@ -614,7 +614,7 @@ func TestDeleteUser_RemovesFavoritesForUser(t *testing.T) {
 // nil-guard around API key cleanup: when API key management is disabled
 // (apiKeys is nil, the default), deleting a user must not panic or error.
 func TestDeleteUser_APIKeysDisabled_SkipsCleanupWithoutError(t *testing.T) {
-	store, err := coreauth.NewUserStore(t.TempDir())
+	store, err := coreauth.NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}
@@ -630,7 +630,7 @@ func TestDeleteUser_APIKeysDisabled_SkipsCleanupWithoutError(t *testing.T) {
 		t.Fatalf("NewUserResolver: %v", err)
 	}
 
-	favoritesStore, err := favorites.NewFavoritesStore(t.TempDir(), nil)
+	favoritesStore, err := favorites.NewFavoritesStore(t.TempDir(), nil, nil)
 	if err != nil {
 		t.Fatalf("NewFavoritesStore: %v", err)
 	}
@@ -640,7 +640,7 @@ func TestDeleteUser_APIKeysDisabled_SkipsCleanupWithoutError(t *testing.T) {
 		}
 	})
 
-	settingsStore, err := usersettings.NewUserSettingsStore(t.TempDir(), nil)
+	settingsStore, err := usersettings.NewUserSettingsStore(t.TempDir(), nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore: %v", err)
 	}
@@ -671,13 +671,13 @@ func TestDeleteUser_APIKeysDisabled_SkipsCleanupWithoutError(t *testing.T) {
 // that way is left holding a closed store forever after a restore.
 func TestGetUsersUseCase_ReflectsLiveRestore(t *testing.T) {
 	preDir := t.TempDir()
-	preStore, err := coreauth.NewUserStore(preDir)
+	preStore, err := coreauth.NewUserStore(preDir, nil)
 	if err != nil {
-		t.Fatalf("NewUserStore(pre): %v", err)
+		t.Fatalf("NewUserStore(pre, nil): %v", err)
 	}
 	preSvc := coreauth.NewUserService(preStore)
 
-	sessionStore, err := coreauth.NewSessionStore(t.TempDir())
+	sessionStore, err := coreauth.NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore: %v", err)
 	}
@@ -693,9 +693,9 @@ func TestGetUsersUseCase_ReflectsLiveRestore(t *testing.T) {
 	uc := NewGetUsersUseCase(authSvc.UserService)
 
 	postDir := t.TempDir()
-	postStore, err := coreauth.NewUserStore(postDir)
+	postStore, err := coreauth.NewUserStore(postDir, nil)
 	if err != nil {
-		t.Fatalf("NewUserStore(post): %v", err)
+		t.Fatalf("NewUserStore(post, nil): %v", err)
 	}
 	postSvc := coreauth.NewUserService(postStore)
 	postUser, err := postSvc.CreateUser("post-restore-admin", "post-restore-admin@example.com", "password123", coreauth.RoleAdmin)

@@ -234,7 +234,7 @@ var stateDBCases = []struct {
 
 func createTestShareLinksDB(t *testing.T, path string) {
 	t.Helper()
-	store, err := sharing.NewShareLinkStore(filepath.Dir(path), nil)
+	store, err := sharing.NewShareLinkStore(filepath.Dir(path), nil, nil)
 	if err != nil {
 		t.Fatalf("NewShareLinkStore: %v", err)
 	}

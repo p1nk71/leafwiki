@@ -92,7 +92,7 @@ func buildFixtureSnapshot(t *testing.T, wikiVersion string) string {
 // needs an existing owner to mint a key against).
 func createRealUsersDB(t *testing.T, dataDir, username, email, password string) string {
 	t.Helper()
-	store, err := auth.NewUserStore(dataDir)
+	store, err := auth.NewUserStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}
@@ -115,13 +115,13 @@ func createRealUsersDB(t *testing.T, dataDir, username, email, password string) 
 // logs in or otherwise exercises sessions.
 func createRealAPIKeysDB(t *testing.T, dataDir, ownerUserID, keyName string) string {
 	t.Helper()
-	userStore, err := auth.NewUserStore(dataDir)
+	userStore, err := auth.NewUserStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}
 	defer test_utils.WrapCloseWithErrorCheck(userStore.Close, t)
 
-	sessionStore, err := auth.NewSessionStore(t.TempDir())
+	sessionStore, err := auth.NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore failed: %v", err)
 	}
@@ -129,7 +129,7 @@ func createRealAPIKeysDB(t *testing.T, dataDir, ownerUserID, keyName string) str
 	sessions := auth.NewSessionManager(sessionStore, "test-secret-key-for-unit-tests-1", time.Hour, 24*time.Hour)
 	authService := auth.NewAuthService(auth.NewUserService(userStore), sessions, nil)
 
-	apiKeyStore, err := auth.NewAPIKeyStore(dataDir)
+	apiKeyStore, err := auth.NewAPIKeyStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewAPIKeyStore failed: %v", err)
 	}
@@ -151,7 +151,7 @@ func createRealAPIKeysDB(t *testing.T, dataDir, ownerUserID, keyName string) str
 // favorites.FavoritesStore and adds a single favorite for userID/pageID.
 func createRealFavoritesDB(t *testing.T, dataDir, userID, pageID string) {
 	t.Helper()
-	store, err := favorites.NewFavoritesStore(dataDir, nil)
+	store, err := favorites.NewFavoritesStore(dataDir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewFavoritesStore failed: %v", err)
 	}
@@ -166,7 +166,7 @@ func createRealFavoritesDB(t *testing.T, dataDir, userID, pageID string) {
 // usersettings.UserSettingsStore and saves language for userID.
 func createRealUserSettingsDB(t *testing.T, dataDir, userID, language string) {
 	t.Helper()
-	store, err := usersettings.NewUserSettingsStore(dataDir, nil)
+	store, err := usersettings.NewUserSettingsStore(dataDir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore failed: %v", err)
 	}

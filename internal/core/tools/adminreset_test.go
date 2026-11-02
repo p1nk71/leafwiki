@@ -15,7 +15,7 @@ func TestResetAdminPassword(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// First, create an admin user
-	store, err := auth.NewUserStore(tempDir)
+	store, err := auth.NewUserStore(tempDir, nil)
 	if err != nil {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestResetAdminPassword(t *testing.T) {
 	}
 
 	// Verify we can log in with the new password
-	store2, err := auth.NewUserStore(tempDir)
+	store2, err := auth.NewUserStore(tempDir, nil)
 	if err != nil {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestResetAdminPassword_NoAdmin(t *testing.T) {
 	}
 
 	// Verify we can log in with the new password
-	store, err := auth.NewUserStore(tempDir)
+	store, err := auth.NewUserStore(tempDir, nil)
 	if err != nil {
 		t.Fatalf("Failed to create user store: %v", err)
 	}

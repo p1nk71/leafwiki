@@ -28,7 +28,7 @@ import (
 func (w *Wiki) initAuth(options *WikiOptions) error {
 	// A corrupt users.db fails here, before InitDefaultAdmin could create
 	// an admin in an empty replacement (ADR-0013).
-	store, err := auth.NewUserStore(w.storageDir)
+	store, err := auth.NewUserStore(w.storageDir, w.pg)
 	if err != nil {
 		return fmt.Errorf("failed to init user store: %w", err)
 	}
@@ -51,7 +51,7 @@ func (w *Wiki) initAuth(options *WikiOptions) error {
 		w.totp = totpService
 	}
 	if !options.AuthDisabled {
-		sessionStore, err := auth.NewSessionStore(w.storageDir)
+		sessionStore, err := auth.NewSessionStore(w.storageDir, w.pg)
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func (w *Wiki) initAuth(options *WikiOptions) error {
 		// (and the Bearer middleware/admin routes stay disabled) until an
 		// operator explicitly opts in.
 		if options.EnableAPIKeyManagement {
-			apiKeyStore, err := auth.NewAPIKeyStore(w.storageDir)
+			apiKeyStore, err := auth.NewAPIKeyStore(w.storageDir, w.pg)
 			if err != nil {
 				return err
 			}
@@ -94,7 +94,7 @@ func (w *Wiki) initEmail(options *WikiOptions) error {
 		return nil
 	}
 
-	store, err := auth.NewEmailTokenStore(w.storageDir)
+	store, err := auth.NewEmailTokenStore(w.storageDir, w.pg)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (w *Wiki) initPropertiesService() error {
 }
 
 func (w *Wiki) initFavoritesService() error {
-	store, err := favorites.NewFavoritesStore(w.storageDir, w.log)
+	store, err := favorites.NewFavoritesStore(w.storageDir, w.log, w.pg)
 	if err != nil {
 		return fmt.Errorf("failed to init favorites store: %w", err)
 	}
@@ -162,7 +162,7 @@ func (w *Wiki) initFavoritesService() error {
 }
 
 func (w *Wiki) initUserSettingsService() error {
-	store, err := usersettings.NewUserSettingsStore(w.storageDir, w.log)
+	store, err := usersettings.NewUserSettingsStore(w.storageDir, w.log, w.pg)
 	if err != nil {
 		return fmt.Errorf("failed to init user settings store: %w", err)
 	}
@@ -176,7 +176,7 @@ func (w *Wiki) initShareLinks(options *WikiOptions) error {
 	if !options.EnableShareLinks {
 		return nil
 	}
-	store, err := sharing.NewShareLinkStore(w.storageDir, w.log)
+	store, err := sharing.NewShareLinkStore(w.storageDir, w.log, w.pg)
 	if err != nil {
 		return fmt.Errorf("failed to init share links store: %w", err)
 	}

@@ -14,7 +14,7 @@ import (
 // holds one user, alice, and her generated ID.
 func newTestUserResolver(t *testing.T) (*auth.UserResolver, string) {
 	t.Helper()
-	store, err := auth.NewUserStore(t.TempDir())
+	store, err := auth.NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}

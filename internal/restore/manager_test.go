@@ -58,11 +58,11 @@ func newManagerFixtureWithBranding(t *testing.T, wikiVersion, brandingJSON strin
 	test_utils.WriteFile(t, dataDir, "avatars/live-only-user.png", "fake-live-avatar-bytes")
 	createRealUsersDB(t, dataDir, "live-admin", "live-admin@example.com", "live-password-123")
 
-	sessionStore, err := auth.NewSessionStore(dataDir)
+	sessionStore, err := auth.NewSessionStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore failed: %v", err)
 	}
-	userStore, err := auth.NewUserStore(dataDir)
+	userStore, err := auth.NewUserStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}
@@ -149,11 +149,11 @@ func newFullManagerFixtureWithBranding(t *testing.T, brandingJSON string) *fullM
 	createRealFavoritesDB(t, dataDir, "user-1", "live-only-page")
 	createRealUserSettingsDB(t, dataDir, "user-1", "en")
 
-	userStore, err := auth.NewUserStore(dataDir)
+	userStore, err := auth.NewUserStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}
-	sessionStore, err := auth.NewSessionStore(dataDir)
+	sessionStore, err := auth.NewSessionStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore failed: %v", err)
 	}
@@ -161,20 +161,20 @@ func newFullManagerFixtureWithBranding(t *testing.T, brandingJSON string) *fullM
 	authService := auth.NewAuthService(auth.NewUserService(userStore), sessions, nil)
 	t.Cleanup(func() { _ = authService.Close() })
 
-	apiKeyStore, err := auth.NewAPIKeyStore(dataDir)
+	apiKeyStore, err := auth.NewAPIKeyStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewAPIKeyStore failed: %v", err)
 	}
 	apiKeyService := auth.NewAPIKeyService(apiKeyStore, authService)
 	t.Cleanup(func() { _ = apiKeyService.Close() })
 
-	favoritesStore, err := favorites.NewFavoritesStore(dataDir, nil)
+	favoritesStore, err := favorites.NewFavoritesStore(dataDir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewFavoritesStore failed: %v", err)
 	}
 	t.Cleanup(func() { _ = favoritesStore.Close() })
 
-	userSettingsStore, err := usersettings.NewUserSettingsStore(dataDir, nil)
+	userSettingsStore, err := usersettings.NewUserSettingsStore(dataDir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore failed: %v", err)
 	}
@@ -337,11 +337,11 @@ func TestManager_Restore_ByID_DoesNotEnforceUploadExtractionCaps(t *testing.T) {
 
 	dataDir := t.TempDir()
 	createRealUsersDB(t, dataDir, "live-admin", "live-admin@example.com", "live-password-123")
-	sessionStore, err := auth.NewSessionStore(dataDir)
+	sessionStore, err := auth.NewSessionStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore failed: %v", err)
 	}
-	userStore, err := auth.NewUserStore(dataDir)
+	userStore, err := auth.NewUserStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}
@@ -384,7 +384,7 @@ func TestManager_Restore_InvalidatesSessions(t *testing.T) {
 
 	// Seed an active session directly (independent of Login/bcrypt) via a
 	// second handle onto the same sessions.db.
-	probe, err := auth.NewSessionStore(f.dataDir)
+	probe, err := auth.NewSessionStore(f.dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore (probe) failed: %v", err)
 	}
@@ -1088,11 +1088,11 @@ func TestManager_Restore_HappyPath_PreservesAPIKeys(t *testing.T) {
 	liveOwnerID := createRealUsersDB(t, dataDir, "live-admin", "live-admin@example.com", "live-password-123")
 	liveToken := createRealAPIKeysDB(t, dataDir, liveOwnerID, "live-key")
 
-	userStore, err := auth.NewUserStore(dataDir)
+	userStore, err := auth.NewUserStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}
-	sessionStore, err := auth.NewSessionStore(dataDir)
+	sessionStore, err := auth.NewSessionStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore failed: %v", err)
 	}
@@ -1100,7 +1100,7 @@ func TestManager_Restore_HappyPath_PreservesAPIKeys(t *testing.T) {
 	authService := auth.NewAuthService(auth.NewUserService(userStore), sessions, nil)
 	t.Cleanup(func() { _ = authService.Close() })
 
-	apiKeyStore, err := auth.NewAPIKeyStore(dataDir)
+	apiKeyStore, err := auth.NewAPIKeyStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewAPIKeyStore failed: %v", err)
 	}
@@ -1176,11 +1176,11 @@ func TestManager_Restore_HappyPath_PreservesFavoritesAndUserSettings(t *testing.
 	createRealFavoritesDB(t, dataDir, "user-1", "live-only-page")
 	createRealUserSettingsDB(t, dataDir, "user-1", "en")
 
-	userStore, err := auth.NewUserStore(dataDir)
+	userStore, err := auth.NewUserStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}
-	sessionStore, err := auth.NewSessionStore(dataDir)
+	sessionStore, err := auth.NewSessionStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore failed: %v", err)
 	}
@@ -1188,13 +1188,13 @@ func TestManager_Restore_HappyPath_PreservesFavoritesAndUserSettings(t *testing.
 	authService := auth.NewAuthService(auth.NewUserService(userStore), sessions, nil)
 	t.Cleanup(func() { _ = authService.Close() })
 
-	favoritesStore, err := favorites.NewFavoritesStore(dataDir, nil)
+	favoritesStore, err := favorites.NewFavoritesStore(dataDir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewFavoritesStore failed: %v", err)
 	}
 	t.Cleanup(func() { _ = favoritesStore.Close() })
 
-	userSettingsStore, err := usersettings.NewUserSettingsStore(dataDir, nil)
+	userSettingsStore, err := usersettings.NewUserSettingsStore(dataDir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore failed: %v", err)
 	}
@@ -1274,11 +1274,11 @@ func TestManager_Restore_HappyPath_ReloadsUserResolverCache(t *testing.T) {
 	dataDir := t.TempDir()
 	liveOwnerID := createRealUsersDB(t, dataDir, "live-admin", "live-admin@example.com", "live-password-123")
 
-	userStore, err := auth.NewUserStore(dataDir)
+	userStore, err := auth.NewUserStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}
-	sessionStore, err := auth.NewSessionStore(dataDir)
+	sessionStore, err := auth.NewSessionStore(dataDir, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore failed: %v", err)
 	}

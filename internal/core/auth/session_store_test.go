@@ -12,7 +12,7 @@ import (
 )
 
 func TestSessionStore_UsesWALJournalMode(t *testing.T) {
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore err: %v", err)
 	}
@@ -30,7 +30,7 @@ func TestSessionStore_UsesWALJournalMode(t *testing.T) {
 }
 
 func TestSessionStore_CreateAndValidateSession(t *testing.T) {
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore err: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestSessionDatabasePath_WindowsPath(t *testing.T) {
 }
 
 func TestSessionStore_RevokeAllSessionsForUserExcept(t *testing.T) {
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore err: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestSessionStore_RevokeAllSessionsForUserExcept(t *testing.T) {
 }
 
 func TestSessionStore_RevokeAllSessionsForUserExcept_EmptyExceptRevokesAll(t *testing.T) {
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore err: %v", err)
 	}
@@ -121,7 +121,7 @@ func TestSessionStore_RevokeAllSessionsForUserExcept_EmptyExceptRevokesAll(t *te
 
 func TestSessionStore_CreatesDatabaseInStorageDir(t *testing.T) {
 	tmp := t.TempDir()
-	store, err := NewSessionStore(tmp)
+	store, err := NewSessionStore(tmp, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore err: %v", err)
 	}

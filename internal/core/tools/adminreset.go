@@ -8,7 +8,7 @@ import (
 )
 
 func ResetAdminPassword(storageDir, username, email string) (*auth.User, error) {
-	store, err := auth.NewUserStore(storageDir)
+	store, err := auth.NewUserStore(storageDir, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open user store: %w", err)
 	}

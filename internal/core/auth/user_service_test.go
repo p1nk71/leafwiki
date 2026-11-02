@@ -11,7 +11,7 @@ import (
 
 func setupTestUserService(t *testing.T) *UserService {
 	t.Helper()
-	store, err := NewUserStore(t.TempDir())
+	store, err := NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("Failed to setup user store: %v", err)
 	}
@@ -153,7 +153,7 @@ func TestUserService_DeleteUser(t *testing.T) {
 }
 
 func TestUserService_InitDefaultAdmin(t *testing.T) {
-	store, _ := NewUserStore(t.TempDir())
+	store, _ := NewUserStore(t.TempDir(), nil)
 	t.Cleanup(func() { test_utils.WrapCloseWithErrorCheck(store.Close, t) })
 	service := NewUserService(store)
 
@@ -169,7 +169,7 @@ func TestUserService_InitDefaultAdmin(t *testing.T) {
 }
 
 func TestUserService_InitDefaultAdmin_UsesGivenUsernameAndEmail(t *testing.T) {
-	store, _ := NewUserStore(t.TempDir())
+	store, _ := NewUserStore(t.TempDir(), nil)
 	t.Cleanup(func() { test_utils.WrapCloseWithErrorCheck(store.Close, t) })
 	service := NewUserService(store)
 
@@ -185,7 +185,7 @@ func TestUserService_InitDefaultAdmin_UsesGivenUsernameAndEmail(t *testing.T) {
 }
 
 func TestUserService_InitDefaultAdmin_PasswordTooShort_ReturnsError(t *testing.T) {
-	store, _ := NewUserStore(t.TempDir())
+	store, _ := NewUserStore(t.TempDir(), nil)
 	t.Cleanup(func() { test_utils.WrapCloseWithErrorCheck(store.Close, t) })
 	service := NewUserService(store)
 
@@ -201,7 +201,7 @@ func TestUserService_InitDefaultAdmin_PasswordTooShort_ReturnsError(t *testing.T
 }
 
 func TestUserService_InitDefaultAdmin_SkipsWhenAdminAlreadyExists(t *testing.T) {
-	store, _ := NewUserStore(t.TempDir())
+	store, _ := NewUserStore(t.TempDir(), nil)
 	t.Cleanup(func() { test_utils.WrapCloseWithErrorCheck(store.Close, t) })
 	service := NewUserService(store)
 
@@ -633,7 +633,7 @@ func TestUserService_GetOrCreateRemoteUser_ConcurrentCallsCreateExactlyOneUser(t
 
 func setupTestUserServiceWithEditorLimit(t *testing.T, limit int) *UserService {
 	t.Helper()
-	store, err := NewUserStore(t.TempDir())
+	store, err := NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("Failed to setup user store: %v", err)
 	}

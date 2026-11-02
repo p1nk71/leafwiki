@@ -26,7 +26,7 @@ func readSessionExpiresAt(t *testing.T, store *SessionStore, jti string) int64 {
 // or TOTP login.
 func setupTestSessionManager(t *testing.T, users map[string]*User) *SessionManager {
 	t.Helper()
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestSessionManager_ValidateToken_RejectsRefreshToken(t *testing.T) {
 // A SessionManager constructed directly (not via NewAuthService, which wires
 // resolveUser) must fail loudly rather than panic on a nil call.
 func TestSessionManager_ValidateToken_ResolveUserNotWired_ReturnsErrorInsteadOfPanicking(t *testing.T) {
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func TestSessionManager_ValidateToken_ResolveUserNotWired_ReturnsErrorInsteadOfP
 }
 
 func TestSessionManager_RefreshToken_ResolveUserNotWired_ReturnsErrorInsteadOfPanicking(t *testing.T) {
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -342,7 +342,7 @@ func fakeAdvancingClock(step time.Duration) func() time.Time {
 // was already (or not yet) considered expired.
 func TestSessionManager_IssueSession_SessionExpiryMatchesRefreshTokenExp(t *testing.T) {
 	user := &User{ID: "u1", Username: "alice", Role: RoleAdmin}
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -378,7 +378,7 @@ func TestSessionManager_IssueSession_SessionExpiryMatchesRefreshTokenExp(t *test
 // Same regression, exercised via RefreshToken's newly-issued refresh session.
 func TestSessionManager_RefreshToken_SessionExpiryMatchesNewRefreshTokenExp(t *testing.T) {
 	user := &User{ID: "u1", Username: "alice", Role: RoleAdmin}
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -417,7 +417,7 @@ func TestSessionManager_RefreshToken_SessionExpiryMatchesNewRefreshTokenExp(t *t
 }
 
 func TestSessionManager_Close_ClosesSessionStore(t *testing.T) {
-	store, err := NewSessionStore(t.TempDir())
+	store, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

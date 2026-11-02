@@ -111,7 +111,7 @@ func setupEmailUseCases(t *testing.T, smtpAddr string) (*coreauth.EmailTokenServ
 	t.Helper()
 	storageDir := t.TempDir()
 
-	userStore, err := coreauth.NewUserStore(storageDir)
+	userStore, err := coreauth.NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}
@@ -128,7 +128,7 @@ func setupEmailUseCases(t *testing.T, smtpAddr string) (*coreauth.EmailTokenServ
 		t.Fatalf("NewUserResolver: %v", err)
 	}
 
-	sessionStore, err := coreauth.NewSessionStore(storageDir)
+	sessionStore, err := coreauth.NewSessionStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore: %v", err)
 	}
@@ -140,7 +140,7 @@ func setupEmailUseCases(t *testing.T, smtpAddr string) (*coreauth.EmailTokenServ
 	sessions := coreauth.NewSessionManager(sessionStore, "test-secret-key-for-unit-tests-1", time.Hour, 24*time.Hour*7)
 	authSvc := coreauth.NewAuthService(users, sessions, nil)
 
-	tokenStore, err := coreauth.NewEmailTokenStore(storageDir)
+	tokenStore, err := coreauth.NewEmailTokenStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("NewEmailTokenStore: %v", err)
 	}

@@ -30,7 +30,7 @@ func createProxyFixture(t *testing.T) *proxyFixture {
 	t.Helper()
 
 	storageDir := t.TempDir()
-	userStore, err := coreauth.NewUserStore(storageDir)
+	userStore, err := coreauth.NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("create user store: %v", err)
 	}
@@ -323,13 +323,13 @@ func TestInjectRemoteUser_MisconfiguredUserService(t *testing.T) {
 // every request instead.
 func TestInjectRemoteUser_ReflectsLiveRestore(t *testing.T) {
 	preDir := t.TempDir()
-	preStore, err := coreauth.NewUserStore(preDir)
+	preStore, err := coreauth.NewUserStore(preDir, nil)
 	if err != nil {
-		t.Fatalf("NewUserStore(pre): %v", err)
+		t.Fatalf("NewUserStore(pre, nil): %v", err)
 	}
 	preSvc := coreauth.NewUserService(preStore)
 
-	sessionStore, err := coreauth.NewSessionStore(t.TempDir())
+	sessionStore, err := coreauth.NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore: %v", err)
 	}
@@ -350,9 +350,9 @@ func TestInjectRemoteUser_ReflectsLiveRestore(t *testing.T) {
 	}
 
 	postDir := t.TempDir()
-	postStore, err := coreauth.NewUserStore(postDir)
+	postStore, err := coreauth.NewUserStore(postDir, nil)
 	if err != nil {
-		t.Fatalf("NewUserStore(post): %v", err)
+		t.Fatalf("NewUserStore(post, nil): %v", err)
 	}
 	postSvc := coreauth.NewUserService(postStore)
 	if _, err := postSvc.CreateUser("post-restore-admin", "post-restore-admin@example.com", "password123", coreauth.RoleAdmin); err != nil {
@@ -560,7 +560,7 @@ func TestInjectRemoteUser_WithRequireAuth(t *testing.T) {
 	cleanupWithErrorCheck(t, "proxy fixture", f.close)
 
 	storageDir := t.TempDir()
-	sessionStore, err := coreauth.NewSessionStore(storageDir)
+	sessionStore, err := coreauth.NewSessionStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("create session store: %v", err)
 	}

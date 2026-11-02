@@ -4,16 +4,24 @@ import (
 	"context"
 	"crypto/subtle"
 	"database/sql"
+	"embed"
+	"fmt"
+	"io/fs"
 	"log/slog"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/shared"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
 	"github.com/perber/wiki/internal/core/shared/sqliteutil"
 	_ "modernc.org/sqlite"
 )
+
+//go:embed migrations
+var migrations embed.FS
 
 // Token purposes. A token issued for one purpose is never valid for the
 // other — Resolve enforces this explicitly (defense in depth even though
@@ -59,7 +67,8 @@ type EmailTokenStore struct {
 	mu         sync.Mutex
 	storageDir string
 	filename   string
-	db         *sql.DB
+	db         *pgdb.DB
+	pg         bool
 	cancel     context.CancelFunc
 	done       chan struct{}
 	log        *slog.Logger
@@ -70,7 +79,9 @@ func emailTokenDatabasePath(storageDir, filename string) string {
 	return filepath.Join(normalizedStorageDir, filename)
 }
 
-func NewEmailTokenStore(storageDir string) (*EmailTokenStore, error) {
+// NewEmailTokenStore opens email_tokens.db under storageDir — or the
+// Postgres email_tokens table when pg is set (ADR-0018).
+func NewEmailTokenStore(storageDir string, pg *pgxpool.Pool) (*EmailTokenStore, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &EmailTokenStore{
 		storageDir: storageDir,
@@ -80,19 +91,33 @@ func NewEmailTokenStore(storageDir string) (*EmailTokenStore, error) {
 		log:        slog.Default().With("component", "EmailTokenStore"),
 	}
 
-	err := sqliteutil.OpenWithPolicy(emailTokenDatabasePath(s.storageDir, s.filename), sqliteutil.QuarantineOnCorruption, func() error {
-		if err := s.ensureSchema(); err != nil {
-			if s.db != nil {
-				_ = s.db.Close()
-				s.db = nil
-			}
-			return err
+	if pg != nil {
+		s.pg = true
+		s.db = pgdb.NewPGDB(pg)
+		migs, err := fs.Sub(migrations, "migrations/email_tokens")
+		if err != nil {
+			cancel()
+			return nil, fmt.Errorf("email token migrations: %w", err)
 		}
-		return nil
-	})
-	if err != nil {
-		cancel()
-		return nil, err
+		if err := pgdb.Migrate(context.Background(), pg, "email_tokens", migs); err != nil {
+			cancel()
+			return nil, fmt.Errorf("email token migrations: %w", err)
+		}
+	} else {
+		err := sqliteutil.OpenWithPolicy(emailTokenDatabasePath(s.storageDir, s.filename), sqliteutil.QuarantineOnCorruption, func() error {
+			if err := s.ensureSchema(); err != nil {
+				if s.db != nil {
+					_ = s.db.Close()
+					s.db = nil
+				}
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			cancel()
+			return nil, err
+		}
 	}
 
 	go func() {
@@ -114,7 +139,7 @@ func NewEmailTokenStore(storageDir string) (*EmailTokenStore, error) {
 	return s, nil
 }
 
-func (s *EmailTokenStore) withDB(fn func(db *sql.DB) error) error {
+func (s *EmailTokenStore) withDB(fn func(db *pgdb.DB) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -123,15 +148,15 @@ func (s *EmailTokenStore) withDB(fn func(db *sql.DB) error) error {
 		if err != nil {
 			return err
 		}
-		s.db = db
+		s.db = pgdb.NewDB(db, false)
 	}
 
 	return fn(s.db)
 }
 
 func (s *EmailTokenStore) ensureSchema() error {
-	return s.withDB(func(db *sql.DB) error {
-		_, err := db.Exec(`
+	return s.withDB(func(db *pgdb.DB) error {
+		_, err := db.Inner().Exec(`
 			CREATE TABLE IF NOT EXISTS email_tokens (
 				id TEXT PRIMARY KEY,
 				token_hash TEXT NOT NULL,
@@ -156,7 +181,7 @@ func (s *EmailTokenStore) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.db != nil {
+	if s.db != nil && !s.pg {
 		if err := s.db.Close(); err != nil {
 			return err
 		}
@@ -180,7 +205,7 @@ func (s *EmailTokenStore) Issue(userID, purpose string, ttl time.Duration) (rawT
 	hash := hashSecret(secret)
 
 	now := time.Now()
-	err = s.withDB(func(db *sql.DB) error {
+	err = s.withDB(func(db *pgdb.DB) error {
 		_, err := db.Exec(`
 			INSERT INTO email_tokens (id, token_hash, user_id, purpose, created_at, expires_at, consumed_at)
 			VALUES (?, ?, ?, ?, ?, ?, NULL);
@@ -242,7 +267,7 @@ func (s *EmailTokenStore) Resolve(rawToken, purpose string) (*EmailToken, error)
 // concurrent requests racing to consume the same token can't both succeed.
 func (s *EmailTokenStore) Consume(id string) error {
 	var rowsAffected int64
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		result, err := db.Exec(`
 			UPDATE email_tokens SET consumed_at = ? WHERE id = ? AND consumed_at IS NULL;
 		`, time.Now().Unix(), id)
@@ -264,7 +289,7 @@ func (s *EmailTokenStore) Consume(id string) error {
 // CleanupExpired purges expired token rows regardless of consumed state.
 func (s *EmailTokenStore) CleanupExpired() error {
 	now := time.Now()
-	return s.withDB(func(db *sql.DB) error {
+	return s.withDB(func(db *pgdb.DB) error {
 		_, err := db.Exec(`DELETE FROM email_tokens WHERE expires_at <= ?;`, now.Unix())
 		return err
 	})
@@ -272,7 +297,7 @@ func (s *EmailTokenStore) CleanupExpired() error {
 
 func (s *EmailTokenStore) getByID(id string) (*EmailToken, error) {
 	tok := &EmailToken{}
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		var createdAt, expiresAt int64
 		var consumedAt sql.NullInt64
 		err := db.QueryRow(`

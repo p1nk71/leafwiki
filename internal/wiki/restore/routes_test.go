@@ -47,11 +47,11 @@ func newTestManagerWithMaxUploadSize(t *testing.T, maxUploadSizeBytes int64) *re
 	rootDir := filepath.Join(base, "root")
 	test_utils.WriteFile(t, rootDir, "page.md", "# Hello\n")
 
-	userStore, err := coreauth.NewUserStore(base)
+	userStore, err := coreauth.NewUserStore(base, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}
-	sessionStore, err := coreauth.NewSessionStore(base)
+	sessionStore, err := coreauth.NewSessionStore(base, nil)
 	if err != nil {
 		t.Fatalf("NewSessionStore failed: %v", err)
 	}
@@ -103,7 +103,7 @@ func buildFixtureZipPath(t *testing.T) string {
 	rootDir := filepath.Join(src, "root")
 	test_utils.WriteFile(t, rootDir, "welcome.md", "# Uploaded backup content\n")
 
-	userStore, err := coreauth.NewUserStore(src)
+	userStore, err := coreauth.NewUserStore(src, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore failed: %v", err)
 	}

@@ -12,7 +12,7 @@ import (
 // holds one user, alice, and her generated ID.
 func newTestUserResolver(t *testing.T) (*coreauth.UserResolver, string) {
 	t.Helper()
-	store, err := coreauth.NewUserStore(t.TempDir())
+	store, err := coreauth.NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}

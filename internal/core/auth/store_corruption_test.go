@@ -18,7 +18,7 @@ func TestNewUserStore_CorruptFile_FailsAndPreservesOriginal(t *testing.T) {
 	dir := t.TempDir()
 	files := test_utils.WriteCorruptSQLiteDB(t, filepath.Join(dir, "users.db"))
 
-	store, err := NewUserStore(dir)
+	store, err := NewUserStore(dir, nil)
 	if err == nil {
 		_ = store.Close()
 		t.Fatal("NewUserStore: expected an error for a corrupt users.db, got nil")
@@ -49,7 +49,7 @@ func TestShortLivedAuthStores_CorruptFile_QuarantinesAndContinues(t *testing.T) 
 			name:     "sessions",
 			filename: "sessions.db",
 			openAndUse: func(t *testing.T, dir string) {
-				store, err := NewSessionStore(dir)
+				store, err := NewSessionStore(dir, nil)
 				if err != nil {
 					t.Fatalf("NewSessionStore: %v", err)
 				}
@@ -63,7 +63,7 @@ func TestShortLivedAuthStores_CorruptFile_QuarantinesAndContinues(t *testing.T) 
 			name:     "email tokens",
 			filename: "email_tokens.db",
 			openAndUse: func(t *testing.T, dir string) {
-				store, err := NewEmailTokenStore(dir)
+				store, err := NewEmailTokenStore(dir, nil)
 				if err != nil {
 					t.Fatalf("NewEmailTokenStore: %v", err)
 				}
@@ -100,14 +100,14 @@ func TestRealStateStores_RelativeDataDir_KeepWAL(t *testing.T) {
 		wantQuarantine bool
 	}{
 		{name: "users fails", filename: "users.db", open: func(dir string) (func() error, error) {
-			s, err := NewUserStore(dir)
+			s, err := NewUserStore(dir, nil)
 			if err != nil {
 				return nil, err
 			}
 			return s.Close, nil
 		}},
 		{name: "sessions quarantine", filename: "sessions.db", wantQuarantine: true, open: func(dir string) (func() error, error) {
-			s, err := NewSessionStore(dir)
+			s, err := NewSessionStore(dir, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -152,21 +152,21 @@ func TestAuthStores_MissingOrEmptyFile_OpensWithoutQuarantine(t *testing.T) {
 		open     func(dir string) (func() error, error)
 	}{
 		{name: "users", filename: "users.db", open: func(dir string) (func() error, error) {
-			s, err := NewUserStore(dir)
+			s, err := NewUserStore(dir, nil)
 			if err != nil {
 				return nil, err
 			}
 			return s.Close, nil
 		}},
 		{name: "sessions", filename: "sessions.db", open: func(dir string) (func() error, error) {
-			s, err := NewSessionStore(dir)
+			s, err := NewSessionStore(dir, nil)
 			if err != nil {
 				return nil, err
 			}
 			return s.Close, nil
 		}},
 		{name: "email tokens", filename: "email_tokens.db", open: func(dir string) (func() error, error) {
-			s, err := NewEmailTokenStore(dir)
+			s, err := NewEmailTokenStore(dir, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -218,7 +218,7 @@ func TestNewUserStore_SpecialCharactersInDataDir_KeepsUsers(t *testing.T) {
 			if err := os.Mkdir(dir, 0o755); err != nil {
 				t.Fatalf("mkdir: %v", err)
 			}
-			first, err := NewUserStore(dir)
+			first, err := NewUserStore(dir, nil)
 			if err != nil {
 				t.Fatalf("first NewUserStore: %v", err)
 			}
@@ -227,7 +227,7 @@ func TestNewUserStore_SpecialCharactersInDataDir_KeepsUsers(t *testing.T) {
 			}
 			test_utils.WrapCloseWithErrorCheck(first.Close, t)
 
-			second, err := NewUserStore(dir)
+			second, err := NewUserStore(dir, nil)
 			if err != nil {
 				t.Fatalf("second NewUserStore on a healthy users.db: %v", err)
 			}

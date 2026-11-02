@@ -1,8 +1,8 @@
 package sharing
 
 import (
+	"github.com/perber/wiki/internal/core/shared/pgdb"
 	"context"
-	"database/sql"
 	"errors"
 	"os"
 	"path/filepath"
@@ -15,7 +15,7 @@ import (
 
 func newTestStore(t *testing.T) *ShareLinkStore {
 	t.Helper()
-	store, err := NewShareLinkStore(t.TempDir(), nil)
+	store, err := NewShareLinkStore(t.TempDir(), nil, nil)
 	if err != nil {
 		t.Fatalf("NewShareLinkStore: %v", err)
 	}
@@ -28,7 +28,7 @@ func newTestStore(t *testing.T) *ShareLinkStore {
 func storedLinkIDs(t *testing.T, store *ShareLinkStore) []string {
 	t.Helper()
 	var ids []string
-	err := store.withDB(func(db *sql.DB) error {
+	err := store.withDB(func(db *pgdb.DB) error {
 		rows, err := db.Query(`SELECT id FROM share_links ORDER BY created_at DESC, id`)
 		if err != nil {
 			return err
@@ -61,7 +61,7 @@ func testLink(id, pageID, tokenHash string) *ShareLink {
 
 func TestShareLinkStore_CreatesDatabaseInStorageDir(t *testing.T) {
 	tmp := t.TempDir()
-	store, err := NewShareLinkStore(tmp, nil)
+	store, err := NewShareLinkStore(tmp, nil, nil)
 	if err != nil {
 		t.Fatalf("NewShareLinkStore: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestShareLinkStore_CreatesDatabaseInStorageDir(t *testing.T) {
 func TestShareLinkStore_IdempotentSchema(t *testing.T) {
 	tmp := t.TempDir()
 	for i := 0; i < 3; i++ {
-		store, err := NewShareLinkStore(tmp, nil)
+		store, err := NewShareLinkStore(tmp, nil, nil)
 		if err != nil {
 			t.Fatalf("NewShareLinkStore (run %d): %v", i, err)
 		}
@@ -172,7 +172,7 @@ func TestShareLinkStore_PauseForSwap_ClosesDBAndBlocksQueries(t *testing.T) {
 func TestShareLinkStore_Replace_ReopensAgainstNewFile(t *testing.T) {
 	dir := t.TempDir()
 	ctx := context.Background()
-	store, err := NewShareLinkStore(dir, nil)
+	store, err := NewShareLinkStore(dir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewShareLinkStore: %v", err)
 	}
@@ -188,7 +188,7 @@ func TestShareLinkStore_Replace_ReopensAgainstNewFile(t *testing.T) {
 	if err := os.Remove(filepath.Join(dir, "share_links.db")); err != nil {
 		t.Fatalf("remove original share_links.db: %v", err)
 	}
-	replacement, err := NewShareLinkStore(dir, nil)
+	replacement, err := NewShareLinkStore(dir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewShareLinkStore (replacement): %v", err)
 	}
@@ -214,7 +214,7 @@ func TestNewShareLinkStore_CorruptFileIsQuarantined(t *testing.T) {
 	dbPath := filepath.Join(dir, "share_links.db")
 	files := test_utils.WriteCorruptSQLiteDB(t, dbPath)
 
-	store, err := NewShareLinkStore(dir, nil)
+	store, err := NewShareLinkStore(dir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewShareLinkStore: %v", err)
 	}

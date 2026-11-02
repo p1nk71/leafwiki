@@ -11,7 +11,7 @@ import (
 
 func newTestStore(t *testing.T) *FavoritesStore {
 	t.Helper()
-	store, err := NewFavoritesStore(t.TempDir(), nil)
+	store, err := NewFavoritesStore(t.TempDir(), nil, nil)
 	if err != nil {
 		t.Fatalf("NewFavoritesStore: %v", err)
 	}
@@ -21,7 +21,7 @@ func newTestStore(t *testing.T) *FavoritesStore {
 
 func TestFavoritesStore_CreatesDatabaseInStorageDir(t *testing.T) {
 	tmp := t.TempDir()
-	store, err := NewFavoritesStore(tmp, nil)
+	store, err := NewFavoritesStore(tmp, nil, nil)
 	if err != nil {
 		t.Fatalf("NewFavoritesStore: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestFavoritesStore_CreatesDatabaseInStorageDir(t *testing.T) {
 func TestFavoritesStore_IdempotentSchema(t *testing.T) {
 	tmp := t.TempDir()
 	for i := 0; i < 3; i++ {
-		store, err := NewFavoritesStore(tmp, nil)
+		store, err := NewFavoritesStore(tmp, nil, nil)
 		if err != nil {
 			t.Fatalf("NewFavoritesStore (run %d): %v", i, err)
 		}
@@ -234,7 +234,7 @@ func TestFavoritesStore_PauseForSwap_ClosesDBAndBlocksQueries(t *testing.T) {
 
 func TestFavoritesStore_Replace_ReopensAgainstNewFileAndClosesOld(t *testing.T) {
 	dir := t.TempDir()
-	store, err := NewFavoritesStore(dir, nil)
+	store, err := NewFavoritesStore(dir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewFavoritesStore: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestFavoritesStore_Replace_ReopensAgainstNewFileAndClosesOld(t *testing.T) 
 	if err := os.Remove(filepath.Join(dir, "favorites.db")); err != nil {
 		t.Fatalf("remove original favorites.db: %v", err)
 	}
-	replacement, err := NewFavoritesStore(dir, nil)
+	replacement, err := NewFavoritesStore(dir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewFavoritesStore (replacement): %v", err)
 	}
@@ -298,7 +298,7 @@ func TestNewFavoritesStore_UnreadableOrEmptyFile(t *testing.T) {
 			dbPath := filepath.Join(dir, "favorites.db")
 			files := tt.setup(t, dbPath)
 
-			store, err := NewFavoritesStore(dir, nil)
+			store, err := NewFavoritesStore(dir, nil, nil)
 			if err != nil {
 				t.Fatalf("NewFavoritesStore: %v", err)
 			}

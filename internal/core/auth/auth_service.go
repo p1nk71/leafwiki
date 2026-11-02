@@ -60,7 +60,7 @@ func (a *AuthService) UserService() *UserService {
 // traffic for the duration of the restore, and GET requests self-heal on
 // their next call.
 func (a *AuthService) ReplaceUserStore(storageDir string) error {
-	newStore, err := NewUserStore(storageDir)
+	newStore, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		return err
 	}

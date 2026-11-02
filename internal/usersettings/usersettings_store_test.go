@@ -14,7 +14,7 @@ import (
 
 func newTestStore(t *testing.T) *UserSettingsStore {
 	t.Helper()
-	store, err := NewUserSettingsStore(t.TempDir(), nil)
+	store, err := NewUserSettingsStore(t.TempDir(), nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore: %v", err)
 	}
@@ -24,7 +24,7 @@ func newTestStore(t *testing.T) *UserSettingsStore {
 
 func TestUserSettingsStore_CreatesDatabaseInStorageDir(t *testing.T) {
 	tmp := t.TempDir()
-	store, err := NewUserSettingsStore(tmp, nil)
+	store, err := NewUserSettingsStore(tmp, nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestUserSettingsStore_CreatesDatabaseInStorageDir(t *testing.T) {
 func TestUserSettingsStore_IdempotentSchema(t *testing.T) {
 	tmp := t.TempDir()
 	for i := 0; i < 3; i++ {
-		store, err := NewUserSettingsStore(tmp, nil)
+		store, err := NewUserSettingsStore(tmp, nil, nil)
 		if err != nil {
 			t.Fatalf("NewUserSettingsStore (run %d): %v", i, err)
 		}
@@ -213,7 +213,7 @@ func TestUserSettingsStore_PauseForSwap_ClosesDBAndBlocksQueries(t *testing.T) {
 
 func TestUserSettingsStore_Replace_ReopensAgainstNewFileAndClosesOld(t *testing.T) {
 	dir := t.TempDir()
-	store, err := NewUserSettingsStore(dir, nil)
+	store, err := NewUserSettingsStore(dir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore: %v", err)
 	}
@@ -231,7 +231,7 @@ func TestUserSettingsStore_Replace_ReopensAgainstNewFileAndClosesOld(t *testing.
 	if err := os.Remove(filepath.Join(dir, "usersettings.db")); err != nil {
 		t.Fatalf("remove original usersettings.db: %v", err)
 	}
-	replacement, err := NewUserSettingsStore(dir, nil)
+	replacement, err := NewUserSettingsStore(dir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore (replacement): %v", err)
 	}
@@ -285,7 +285,7 @@ func TestUserSettingsStore_MigratesLegacySchema_AddsFormatColumns(t *testing.T) 
 		t.Fatalf("close legacy db: %v", err)
 	}
 
-	store, err := NewUserSettingsStore(dir, nil)
+	store, err := NewUserSettingsStore(dir, nil, nil)
 	if err != nil {
 		t.Fatalf("NewUserSettingsStore (migrating): %v", err)
 	}
@@ -339,7 +339,7 @@ func TestNewUserSettingsStore_UnreadableOrEmptyFile(t *testing.T) {
 			dbPath := filepath.Join(dir, "usersettings.db")
 			files := tt.setup(t, dbPath)
 
-			store, err := NewUserSettingsStore(dir, nil)
+			store, err := NewUserSettingsStore(dir, nil, nil)
 			if err != nil {
 				t.Fatalf("NewUserSettingsStore: %v", err)
 			}

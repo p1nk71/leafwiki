@@ -20,11 +20,11 @@ func createTestAuthFixture(t *testing.T) *authFixture {
 	t.Helper()
 
 	storageDir := t.TempDir()
-	userStore, err := coreauth.NewUserStore(storageDir)
+	userStore, err := coreauth.NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
-	sessionStore, err := coreauth.NewSessionStore(storageDir)
+	sessionStore, err := coreauth.NewSessionStore(storageDir, nil)
 	if err != nil {
 		_ = userStore.Close()
 		t.Fatalf("Failed to create session store: %v", err)

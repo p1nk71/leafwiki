@@ -1,18 +1,26 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
 	"github.com/perber/wiki/internal/core/shared/sqliteutil"
 	_ "modernc.org/sqlite"
 )
+
+//go:embed migrations
+var userMigrations embed.FS
 
 const logCloseRowsFailed = "could not close rows"
 
@@ -20,7 +28,8 @@ type UserStore struct {
 	mu         sync.Mutex
 	storageDir string
 	filename   string
-	db         *sql.DB
+	db         *pgdb.DB
+	pg         bool
 	// suspended is set by suspend() and makes Connect() refuse to lazily
 	// reopen db — see suspend's doc comment.
 	suspended bool
@@ -31,10 +40,26 @@ func databasePath(storageDir string, filename string) string {
 	return filepath.Join(normalizedStorageDir, filename)
 }
 
-func NewUserStore(storageDir string) (*UserStore, error) {
+// NewUserStore opens users.db under storageDir — or the Postgres users
+// table when pg is set (ADR-0018). The pg path runs the package-owned
+// migration once instead of the PRAGMA-based ensureSchema.
+func NewUserStore(storageDir string, pg *pgxpool.Pool) (*UserStore, error) {
 	u := &UserStore{
 		storageDir: storageDir,
 		filename:   "users.db",
+	}
+
+	if pg != nil {
+		u.pg = true
+		u.db = pgdb.NewPGDB(pg)
+		migs, err := fs.Sub(userMigrations, "migrations/users")
+		if err != nil {
+			return nil, fmt.Errorf("user migrations: %w", err)
+		}
+		if err := pgdb.Migrate(context.Background(), pg, "users", migs); err != nil {
+			return nil, fmt.Errorf("user migrations: %w", err)
+		}
+		return u, nil
 	}
 
 	// ensureSchema calls Connect() itself (idempotently), so it alone is
@@ -42,7 +67,7 @@ func NewUserStore(storageDir string) (*UserStore, error) {
 	err := sqliteutil.OpenWithPolicy(databasePath(u.storageDir, u.filename), sqliteutil.FailOnCorruption, func() error {
 		if err := u.ensureSchema(); err != nil {
 			if u.db != nil {
-				_ = u.db.Close()
+				_ = u.db.Inner().Close()
 				u.db = nil
 			}
 			return err
@@ -83,7 +108,7 @@ func (f *UserStore) Connect() error {
 	if err != nil {
 		return err
 	}
-	f.db = db
+	f.db = pgdb.NewDB(db, false)
 	return nil
 }
 
@@ -100,7 +125,7 @@ func (f *UserStore) suspend() error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.suspended = true
-	if f.db == nil {
+	if f.db == nil || f.pg {
 		return nil
 	}
 	err := f.db.Close()
@@ -116,7 +141,7 @@ func (f *UserStore) ensureSchema() error {
 	// Create the users table if it doesn't exist. Fresh installs get the full
 	// TOTP schema immediately; existing users.db files are migrated additively
 	// by ensureTOTPColumns below.
-	_, err = f.db.Exec(`
+	_, err = f.db.Inner().Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id TEXT PRIMARY KEY,
 			username TEXT NOT NULL UNIQUE,
@@ -152,7 +177,7 @@ func (f *UserStore) ensureMustSetPasswordColumn() error {
 	if existing["must_set_password"] {
 		return nil
 	}
-	if _, err := f.db.Exec(`ALTER TABLE users ADD COLUMN must_set_password INTEGER NOT NULL DEFAULT 0`); err != nil {
+	if _, err := f.db.Inner().Exec(`ALTER TABLE users ADD COLUMN must_set_password INTEGER NOT NULL DEFAULT 0`); err != nil {
 		return fmt.Errorf("failed to add column must_set_password to users table: %w", err)
 	}
 	return nil
@@ -184,7 +209,7 @@ func (f *UserStore) ensureTOTPColumns() error {
 		if existing[m.column] {
 			continue
 		}
-		if _, err := f.db.Exec(m.ddl); err != nil {
+		if _, err := f.db.Inner().Exec(m.ddl); err != nil {
 			return fmt.Errorf("failed to add column %s to users table: %w", m.column, err)
 		}
 	}
@@ -192,7 +217,7 @@ func (f *UserStore) ensureTOTPColumns() error {
 }
 
 func (f *UserStore) existingColumns() (map[string]bool, error) {
-	rows, err := f.db.Query(`PRAGMA table_info(users)`)
+	rows, err := f.db.Inner().Query(`PRAGMA table_info(users)`)
 	if err != nil {
 		return nil, err
 	}
@@ -531,11 +556,13 @@ func (f *UserStore) mapConstraintViolationToError(err error) error {
 	if err, ok := err.(interface{ Error() string }); ok {
 		msg := err.Error()
 		// Check for unique constraint violation
-		if strings.Contains(msg, "UNIQUE constraint failed: users.username") {
+		if strings.Contains(msg, "UNIQUE constraint failed: users.username") ||
+			strings.Contains(msg, `violates unique constraint "users_username`) {
 			return ErrUserAlreadyExists
 		}
 
-		if strings.Contains(msg, "UNIQUE constraint failed: users.email") {
+		if strings.Contains(msg, "UNIQUE constraint failed: users.email") ||
+			strings.Contains(msg, `violates unique constraint "users_email`) {
 			return ErrUserAlreadyExists
 		}
 	}

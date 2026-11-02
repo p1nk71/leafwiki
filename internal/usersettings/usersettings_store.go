@@ -1,7 +1,10 @@
 package usersettings
 
 import (
+	"context"
 	"database/sql"
+	"embed"
+	"io/fs"
 	"fmt"
 	"log/slog"
 	"path/filepath"
@@ -9,9 +12,14 @@ import (
 	"sync"
 
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
 	"github.com/perber/wiki/internal/core/shared/sqliteutil"
 	_ "modernc.org/sqlite"
 )
+
+//go:embed migrations
+var migrations embed.FS
 
 // ErrCodeUserSettingsStoreUnavailable identifies
 // errUserSettingsStoreUnavailable's LocalizedError. Mirrors
@@ -31,7 +39,8 @@ func errUserSettingsStoreUnavailable() error {
 
 type UserSettingsStore struct {
 	mu sync.Mutex
-	db *sql.DB
+	db *pgdb.DB
+	pg bool
 	// suspended is set by PauseForSwap and makes every query method refuse
 	// to serve queries against a possibly-stale db handle until Replace
 	// reopens it.
@@ -39,17 +48,31 @@ type UserSettingsStore struct {
 	log       *slog.Logger
 }
 
-func NewUserSettingsStore(storageDir string, log *slog.Logger) (*UserSettingsStore, error) {
+// NewUserSettingsStore opens usersettings.db under storageDir — or the
+// Postgres user_settings table when pg is set (ADR-0018).
+func NewUserSettingsStore(storageDir string, log *slog.Logger, pg *pgxpool.Pool) (*UserSettingsStore, error) {
 	normalized := filepath.FromSlash(strings.ReplaceAll(storageDir, `\`, `/`))
 	dbPath := filepath.Join(normalized, "usersettings.db")
 
 	s := &UserSettingsStore{log: log}
+	if pg != nil {
+		s.pg = true
+		s.db = pgdb.NewPGDB(pg)
+		migs, err := fs.Sub(migrations, "migrations")
+		if err != nil {
+			return nil, fmt.Errorf("user settings migrations: %w", err)
+		}
+		if err := pgdb.Migrate(context.Background(), pg, "usersettings", migs); err != nil {
+			return nil, fmt.Errorf("user settings migrations: %w", err)
+		}
+		return s, nil
+	}
 	err := sqliteutil.OpenWithPolicy(dbPath, sqliteutil.QuarantineOnCorruption, func() error {
 		db, err := sql.Open("sqlite", dbPath+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 		if err != nil {
 			return fmt.Errorf("failed to open user settings database: %w", err)
 		}
-		s.db = db
+		s.db = pgdb.NewDB(db, false)
 		if err := s.ensureSchema(); err != nil {
 			_ = db.Close()
 			s.db = nil
@@ -64,7 +87,7 @@ func NewUserSettingsStore(storageDir string, log *slog.Logger) (*UserSettingsSto
 }
 
 func (s *UserSettingsStore) ensureSchema() error {
-	if _, err := s.db.Exec(`
+	if _, err := s.db.Inner().Exec(`
 		CREATE TABLE IF NOT EXISTS user_settings (
 			user_id     TEXT PRIMARY KEY,
 			language    TEXT NOT NULL,
@@ -101,7 +124,7 @@ func (s *UserSettingsStore) ensureFormatColumns() error {
 		if existing[m.column] {
 			continue
 		}
-		if _, err := s.db.Exec(m.ddl); err != nil {
+		if _, err := s.db.Inner().Exec(m.ddl); err != nil {
 			return fmt.Errorf("failed to add column %s to user_settings table: %w", m.column, err)
 		}
 	}
@@ -109,7 +132,7 @@ func (s *UserSettingsStore) ensureFormatColumns() error {
 }
 
 func (s *UserSettingsStore) existingColumns() (map[string]bool, error) {
-	rows, err := s.db.Query(`PRAGMA table_info(user_settings)`)
+	rows, err := s.db.Inner().Query(`PRAGMA table_info(user_settings)`)
 	if err != nil {
 		return nil, err
 	}
@@ -238,6 +261,9 @@ func (s *UserSettingsStore) PauseForSwap() error {
 	if s.db == nil {
 		return nil
 	}
+	if s.pg {
+		return nil
+	}
 	err := s.db.Close()
 	s.db = nil
 	return err
@@ -250,7 +276,13 @@ func (s *UserSettingsStore) PauseForSwap() error {
 // identity: no caller needs to be told about the new connection, they
 // already hold this pointer. Mirrors favorites.FavoritesStore.Replace.
 func (s *UserSettingsStore) Replace(storageDir string) error {
-	fresh, err := NewUserSettingsStore(storageDir, s.log)
+	if s.pg {
+		s.mu.Lock()
+		s.suspended = false
+		s.mu.Unlock()
+		return nil
+	}
+	fresh, err := NewUserSettingsStore(storageDir, s.log, nil)
 	if err != nil {
 		return err
 	}

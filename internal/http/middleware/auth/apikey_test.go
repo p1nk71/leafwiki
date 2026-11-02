@@ -23,7 +23,7 @@ type apiKeyFixture struct {
 func createAPIKeyFixture(t *testing.T) *apiKeyFixture {
 	t.Helper()
 
-	userStore, err := coreauth.NewUserStore(t.TempDir())
+	userStore, err := coreauth.NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("create user store: %v", err)
 	}
@@ -34,14 +34,14 @@ func createAPIKeyFixture(t *testing.T) *apiKeyFixture {
 		t.Fatalf("create owner user: %v", err)
 	}
 
-	sessionStore, err := coreauth.NewSessionStore(t.TempDir())
+	sessionStore, err := coreauth.NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("create session store: %v", err)
 	}
 	sessions := coreauth.NewSessionManager(sessionStore, "test-secret-key-for-unit-tests-1", time.Hour, 24*time.Hour)
 	authService := coreauth.NewAuthService(userService, sessions, nil)
 
-	keyStore, err := coreauth.NewAPIKeyStore(t.TempDir())
+	keyStore, err := coreauth.NewAPIKeyStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("create api key store: %v", err)
 	}
@@ -374,7 +374,7 @@ func TestInjectAPIKeyUser_WithRequireAuth(t *testing.T) {
 	f := createAPIKeyFixture(t)
 	cleanupWithErrorCheck(t, "api key fixture", f.closeAll)
 
-	sessionStore, err := coreauth.NewSessionStore(t.TempDir())
+	sessionStore, err := coreauth.NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatalf("create session store: %v", err)
 	}

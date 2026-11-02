@@ -66,7 +66,7 @@ func newTestDeps(t *testing.T) *testDeps {
 		revision.ServiceOptions{},
 	)
 
-	favoritesStore, err := favorites.NewFavoritesStore(storageDir, nil)
+	favoritesStore, err := favorites.NewFavoritesStore(storageDir, nil, nil)
 	if err != nil {
 		t.Fatalf("failed to create favorites store: %v", err)
 	}

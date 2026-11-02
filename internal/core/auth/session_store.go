@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/shared/sqliteutil"
 	_ "modernc.org/sqlite"
 )
@@ -18,6 +19,7 @@ type SessionStore struct {
 	storageDir string
 	filename   string
 	db         *sql.DB
+	inMemory   bool // ADR-0018: ephemeral shared-cache SQLite instead of a file
 	cancel     context.CancelFunc
 	done       chan struct{}
 	log        *slog.Logger
@@ -28,16 +30,26 @@ func sessionDatabasePath(storageDir string, filename string) string {
 	return filepath.Join(normalizedStorageDir, filename)
 }
 
-func NewSessionStore(storageDir string) (*SessionStore, error) {
+// NewSessionStore opens sessions.db under storageDir. When pg is set
+// (ADR-0018), sessions are ephemeral: the store switches to an in-memory
+// shared-cache SQLite, so a restart logs everyone out by design.
+func NewSessionStore(storageDir string, pg *pgxpool.Pool) (*SessionStore, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &SessionStore{
 		storageDir: storageDir,
 		filename:   "sessions.db",
+		inMemory:   pg != nil,
 		cancel:     cancel,
 		done:       make(chan struct{}),
 		log:        slog.Default().With("component", "SessionStore"),
 	}
 
+	if s.inMemory {
+		if err := s.ensureSchema(); err != nil {
+			cancel()
+			return nil, err
+		}
+	} else {
 	err := sqliteutil.OpenWithPolicy(sessionDatabasePath(s.storageDir, s.filename), sqliteutil.QuarantineOnCorruption, func() error {
 		if err := s.ensureSchema(); err != nil {
 			if s.db != nil {
@@ -48,9 +60,10 @@ func NewSessionStore(storageDir string) (*SessionStore, error) {
 		}
 		return nil
 	})
-	if err != nil {
-		cancel()
-		return nil, err
+		if err != nil {
+			cancel()
+			return nil, err
+		}
 	}
 
 	// Cleanup expired sessions periodically
@@ -79,7 +92,13 @@ func (s *SessionStore) withDB(fn func(db *sql.DB) error) error {
 	defer s.mu.Unlock()
 
 	if s.db == nil {
-		db, err := sql.Open("sqlite", sessionDatabasePath(s.storageDir, s.filename)+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
+		dsn := sessionDatabasePath(s.storageDir, s.filename) + "?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"
+		if s.inMemory {
+			// Shared-cache in-memory DB: every pooled conn sees the same
+			// schema; all sessions vanish on process exit.
+			dsn = "file:sessions?mode=memory&cache=shared&_pragma=busy_timeout(5000)"
+		}
+		db, err := sql.Open("sqlite", dsn)
 		if err != nil {
 			return err
 		}

@@ -12,11 +12,20 @@ import (
 	"sync"
 	"time"
 
+	"context"
+	"embed"
+	"io/fs"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/perber/wiki/internal/core/shared"
 	sharederrors "github.com/perber/wiki/internal/core/shared/errors"
+	"github.com/perber/wiki/internal/core/shared/pgdb"
 	"github.com/perber/wiki/internal/core/shared/sqliteutil"
 	_ "modernc.org/sqlite"
 )
+
+//go:embed migrations
+var migrations embed.FS
 
 const logCloseRowsFailed = "could not close rows"
 
@@ -38,24 +47,41 @@ func errFavoritesStoreUnavailable() error {
 
 type FavoritesStore struct {
 	mu sync.Mutex
-	db *sql.DB
+	db *pgdb.DB
+	pg bool
 	// suspended is set by PauseForSwap and makes withDB refuse to serve
 	// queries against a possibly-stale db handle until Replace reopens it.
 	suspended bool
 	log       *slog.Logger
 }
 
-func NewFavoritesStore(storageDir string, log *slog.Logger) (*FavoritesStore, error) {
+// NewFavoritesStore opens the store on SQLite under storageDir — or on the
+// Postgres settings schema when pg is set (ADR-0018). The pg path runs the
+// package-owned migration on first use.
+func NewFavoritesStore(storageDir string, log *slog.Logger, pg *pgxpool.Pool) (*FavoritesStore, error) {
+	s := &FavoritesStore{log: log}
+	if pg != nil {
+		s.pg = true
+		s.db = pgdb.NewPGDB(pg)
+		migs, err := fs.Sub(migrations, "migrations")
+		if err != nil {
+			return nil, fmt.Errorf("favorites migrations: %w", err)
+		}
+		if err := pgdb.Migrate(context.Background(), pg, "favorites", migs); err != nil {
+			return nil, fmt.Errorf("favorites migrations: %w", err)
+		}
+		return s, nil
+	}
+
 	normalized := filepath.FromSlash(strings.ReplaceAll(storageDir, `\`, `/`))
 	dbPath := filepath.Join(normalized, "favorites.db")
 
-	s := &FavoritesStore{log: log}
 	err := sqliteutil.OpenWithPolicy(dbPath, sqliteutil.QuarantineOnCorruption, func() error {
 		db, err := sql.Open("sqlite", dbPath+"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)")
 		if err != nil {
 			return fmt.Errorf("failed to open favorites database: %w", err)
 		}
-		s.db = db
+		s.db = pgdb.NewDB(db, false)
 		if err := s.ensureSchema(); err != nil {
 			_ = db.Close()
 			s.db = nil
@@ -70,7 +96,7 @@ func NewFavoritesStore(storageDir string, log *slog.Logger) (*FavoritesStore, er
 }
 
 func (s *FavoritesStore) ensureSchema() error {
-	_, err := s.db.Exec(`
+	_, err := s.db.Inner().Exec(`
 		CREATE TABLE IF NOT EXISTS favorites (
 			user_id    TEXT NOT NULL,
 			page_id    TEXT NOT NULL,
@@ -85,7 +111,7 @@ func (s *FavoritesStore) ensureSchema() error {
 // withDB runs fn against the current db handle, or returns
 // errFavoritesStoreUnavailable if the store is suspended for an in-progress
 // restore. Mirrors APIKeyStore.withDB.
-func (s *FavoritesStore) withDB(fn func(db *sql.DB) error) error {
+func (s *FavoritesStore) withDB(fn func(db *pgdb.DB) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -97,9 +123,13 @@ func (s *FavoritesStore) withDB(fn func(db *sql.DB) error) error {
 
 // Add favorites pageID for userID. Idempotent — favoriting an already-favorited page is a no-op.
 func (s *FavoritesStore) Add(userID, pageID string) error {
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
+		insert := `INSERT OR IGNORE INTO favorites (user_id, page_id, created_at) VALUES (?, ?, ?)`
+		if s.pg {
+			insert = `INSERT INTO favorites (user_id, page_id, created_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`
+		}
 		_, err := db.Exec(
-			`INSERT OR IGNORE INTO favorites (user_id, page_id, created_at) VALUES (?, ?, ?)`,
+			insert,
 			userID, pageID, time.Now().UTC(),
 		)
 		return err
@@ -112,7 +142,7 @@ func (s *FavoritesStore) Add(userID, pageID string) error {
 
 // Remove un-favorites pageID for userID. Idempotent — removing a non-favorited page is a no-op.
 func (s *FavoritesStore) Remove(userID, pageID string) error {
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		_, err := db.Exec(`DELETE FROM favorites WHERE user_id = ? AND page_id = ?`, userID, pageID)
 		return err
 	})
@@ -125,7 +155,7 @@ func (s *FavoritesStore) Remove(userID, pageID string) error {
 // ListPageIDsForUser returns the page IDs favorited by userID, most recently favorited first.
 func (s *FavoritesStore) ListPageIDsForUser(userID string) ([]string, error) {
 	var pageIDs []string
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		rows, err := db.Query(
 			`SELECT page_id FROM favorites WHERE user_id = ? ORDER BY created_at DESC`,
 			userID,
@@ -152,7 +182,7 @@ func (s *FavoritesStore) ListPageIDsForUser(userID string) ([]string, error) {
 
 // DeleteAllForPage removes every user's favorite of pageID. Called on page delete.
 func (s *FavoritesStore) DeleteAllForPage(pageID string) error {
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		_, err := db.Exec(`DELETE FROM favorites WHERE page_id = ?`, pageID)
 		return err
 	})
@@ -164,7 +194,7 @@ func (s *FavoritesStore) DeleteAllForPage(pageID string) error {
 
 // DeleteAllForUser removes every favorite belonging to userID. Called on user delete.
 func (s *FavoritesStore) DeleteAllForUser(userID string) error {
-	err := s.withDB(func(db *sql.DB) error {
+	err := s.withDB(func(db *pgdb.DB) error {
 		_, err := db.Exec(`DELETE FROM favorites WHERE user_id = ?`, userID)
 		return err
 	})
@@ -184,7 +214,8 @@ func (s *FavoritesStore) PauseForSwap() error {
 	defer s.mu.Unlock()
 
 	s.suspended = true
-	if s.db == nil {
+	if s.db == nil || s.pg {
+		// pg backend shares the wiki's pool — nothing store-local to close.
 		return nil
 	}
 	err := s.db.Close()
@@ -200,9 +231,18 @@ func (s *FavoritesStore) PauseForSwap() error {
 // pointer. Mirrors APIKeyService.Replace, adapted for the fact that
 // FavoritesStore has no separate service-layer indirection to swap.
 func (s *FavoritesStore) Replace(storageDir string) error {
-	fresh, err := NewFavoritesStore(storageDir, s.log)
+	fresh, err := NewFavoritesStore(storageDir, s.log, nil)
 	if err != nil {
 		return err
+	}
+
+	if s.pg {
+		// Nothing swapped on disk — the pool still points at the same
+		// Postgres. Just serve queries again.
+		s.mu.Lock()
+		s.suspended = false
+		s.mu.Unlock()
+		return nil
 	}
 
 	s.mu.Lock()
@@ -223,7 +263,7 @@ func (s *FavoritesStore) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.db != nil {
+	if s.db != nil && !s.pg {
 		if err := s.db.Close(); err != nil {
 			return err
 		}

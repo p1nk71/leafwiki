@@ -22,7 +22,7 @@ func setupTestUserStore(t *testing.T) *UserStore {
 	t.Helper()
 	// Create a temporary directory for the database
 	storageDir := t.TempDir()
-	userStore, err := NewUserStore(storageDir)
+	userStore, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("Failed to create user store: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestUserStore_UsesWALJournalMode(t *testing.T) {
 // would be silently lost the moment the sidecar is removed.
 func TestUserStore_DataSurvivesCloseAndFreshReopen(t *testing.T) {
 	storageDir := t.TempDir()
-	userStore, err := NewUserStore(storageDir)
+	userStore, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestUserStore_DataSurvivesCloseAndFreshReopen(t *testing.T) {
 
 	// Same sequence AuthService.ReplaceUserStore follows after a restore
 	// swap: a brand new UserStore over the same storage dir.
-	reopened, err := NewUserStore(storageDir)
+	reopened, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("NewUserStore (reopen): %v", err)
 	}
@@ -87,7 +87,7 @@ func TestUserStore_DataSurvivesCloseAndFreshReopen(t *testing.T) {
 
 func TestUserStore_CreatesDatabaseInStorageDir(t *testing.T) {
 	storageDir := t.TempDir()
-	userStore, err := NewUserStore(storageDir)
+	userStore, err := NewUserStore(storageDir, nil)
 	if err != nil {
 		t.Fatalf("Failed to create user store: %v", err)
 	}

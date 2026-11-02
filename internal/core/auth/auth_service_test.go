@@ -13,7 +13,7 @@ import (
 
 func setupTestAuthService(t *testing.T) *AuthService {
 	t.Helper()
-	store, err := NewUserStore(t.TempDir())
+	store, err := NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func setupTestAuthService(t *testing.T) *AuthService {
 	}
 
 	// Create Session store
-	sessionStore, err := NewSessionStore(t.TempDir())
+	sessionStore, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -51,7 +51,7 @@ type totpTestFixture struct {
 
 func setupTOTPTestFixture(t *testing.T) *totpTestFixture {
 	t.Helper()
-	store, err := NewUserStore(t.TempDir())
+	store, err := NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func setupTOTPTestFixture(t *testing.T) *totpTestFixture {
 		t.Fatal(err)
 	}
 
-	sessionStore, err := NewSessionStore(t.TempDir())
+	sessionStore, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,7 +374,7 @@ func TestAuthService_CompleteTOTPLogin_NotConfiguredWhenNoEncryptionKey(t *testi
 
 func mustNewSessionStore(t *testing.T) *SessionStore {
 	t.Helper()
-	s, err := NewSessionStore(t.TempDir())
+	s, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -395,7 +395,7 @@ type totpSetupFixture struct {
 
 func setupTOTPSetupFixture(t *testing.T) *totpSetupFixture {
 	t.Helper()
-	store, err := NewUserStore(t.TempDir())
+	store, err := NewUserStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -407,7 +407,7 @@ func setupTOTPSetupFixture(t *testing.T) *totpSetupFixture {
 		t.Fatal(err)
 	}
 
-	sessionStore, err := NewSessionStore(t.TempDir())
+	sessionStore, err := NewSessionStore(t.TempDir(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
