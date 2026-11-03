@@ -1,5 +1,5 @@
 # Step 1: Frontend
-FROM node:26-alpine@sha256:0b36e8c136b94cd4fcf02188228e76c31ad5872eef3fec8cbd2eee500cfd9e80 AS frontend-build
+FROM node:26-alpine@sha256:c6ad9e9c1d80f6eb607c26b4b0a132ff7a2344fad1c78ea3baa2a7d4c8de6d94 AS frontend-build
 WORKDIR /app
 ARG APP_VERSION
 COPY ./ui/leafwiki-ui/package*.json ./
@@ -21,7 +21,7 @@ RUN CGO_ENABLED=0 go build \
 	-o /out/leafwiki ./cmd/leafwiki
 
 # Step 3: Final image (small)
-FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS final
+FROM alpine:3.24@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a AS final
 WORKDIR /app
 COPY --from=backend-build /out/leafwiki /app/leafwiki
 
